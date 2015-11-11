@@ -26,11 +26,14 @@ CASE = 0
 COEXISTENCEPROTOCOL = 0
 K = .5
 beta = .95
-
+CONNECTIONDISTANCE = 3
 
 from agent import Agent
+import environment
 from environment import BS
 import random
+from collections import Counter
+
 def getNetworkGeometry(CASE):
     BSs = []
     UEs = []
@@ -51,13 +54,34 @@ def createVariableDictionary():
     return {}
     
 def determineWhichBSTransmitting(BSs, variables):
-    if COEXISTENCEPROTOCOL is 0:
+    x = [0]*len(BSs)
+    if COEXISTENCEPROTOCOL is 0: #each LTE-U node transmit with probability K. Each WiFi node transmits if no one around it is transmitting.
         K = variables["K"]
-        
-    return [1]*len(BSs)
+        for i in range(0, len(BSs)):
+            if BS.type == 'LTE':
+                if random.random() <= K : #true with probability K
+                    x[i] = 1
+    for i in range(0, len(BSs)):
+        turnon = True
+        for j in range(0, len(BSs)):
+            if i==j:
+                continue
+            if environment.distance(BSs[i], BSs[j]) <= CONNECTIONDISTANCE and x[j] == 1:
+                #don't turn this BS on.
+                turnon = False;
+        if turnon:
+            x[i] = 1
+    return x
 
-def determineRewards(actions, instvariables):
-    return [1]*len(actions)
+def determineRewards(BSs, UEs, actions, instvariables):
+    x = determineWhichBSTransmitting(BSs, instvariables);
+    Ntx = Counter(actions)     #find number of UEs that chose each BS
+    rewards = [0]*len(UEs)
+    for i in range(0, len(UEs)):
+        if x[actions[i]]  == 0: #BS it is connected to is not transmitting
+            continue
+        rewards[i] = environment.calculatecapacity(UEs[i], BSs[actions[i]], Ntx, instvariables)   
+    return rewards
     
 
 [BSs, UEs] = getNetworkGeometry(CASE);
