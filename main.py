@@ -31,12 +31,11 @@ import random
 from collections import Counter
 import matplotlib.pyplot
 import pylab
-
+import time
 input_file = 'experiments.csv'
 csv_file = csv.DictReader(open(input_file, 'r'), delimiter=',', quotechar='"')
 
 output_file = 'data.csv'
-output_csv_file = csv.writer(open(output_file, 'w'), delimiter=',', quotechar='"')
 
 def getNetworkGeometry(CASE):
     BSs = []
@@ -91,11 +90,12 @@ for configuration in csv_file:
     for var in variables:
         if var != 'ExperimentName':
             variables[var]= float(variables[var])
+        else:
+            variables[var] = variables[var] + '_' + str(time.time());
     CASE = int(variables['CASE'])
     COEXISTENCEPROTOCOL = int(variables['COEXISTENCEPROTOCOL'])        
     NumExperiments = int(variables['NumRepeat']);
-    AgentRewards = {}
-    NumExperiments = 1
+    AgentRewards = []
     for experiment_num in range(0, NumExperiments):
         [BSs, UElocs] = getNetworkGeometry(CASE);
         Agents = createAgents(CASE, UElocs, BSs)
@@ -111,13 +111,48 @@ for configuration in csv_file:
                 Agents[i].updatereward(rewards[i])    
             
         #    continue with probability 1-beta. (actually breaking at time T_cutoff for now)
-            t = t+1    
+            t = t+1
             if t >= variables['T_cutoff']:
                 break
-        matplotlib.pyplot.scatter(range(0, int(variables['T_cutoff'])), Agents[0].rewards)
-        matplotlib.pyplot.show()
+        for i in range(0, len(Agents)):
+            if experiment_num is 0:
+                AgentRewards.append(np.array(Agents[i].rewards))
+            else:
+                AgentRewards[i] = AgentRewards[i] + np.array(Agents[i].rewards)
+    for i in range(0, len(Agents)):
+        AgentRewards[i] = AgentRewards[i]/NumExperiments
+    matplotlib.pyplot.scatter(range(0, int(variables['T_cutoff'])), AgentRewards[0])
+    matplotlib.pyplot.show()
+    
+    #output results:
+    
+    fieldnamesorder = ['ExperimentName', 'CASE', 'COEXISTENCEPROTOCOL', 'Agent_type', 'Agent_location']
+    AgentPrintingDicts = []
+    for i in range(0, len(Agents)):
+        AgentPrintingDicts.append(variables.copy())
+        AgentPrintingDicts[i]['Agent_location'] = Agents[i].location #NOTE Only valid for deterministic locations
+        AgentPrintingDicts[i]['Agent_type'] = type(Agents[i]).__name__ #NOTE Only valid for deterministic locations/orderings
+
         
-        
+    for var in variables:
+        if var not in fieldnamesorder:
+            fieldnamesorder.append(var)
+    for i in range(0, int(variables['T_cutoff'])):
+        fieldnamesorder.append(str(i))
+        for agent in range(0, len(Agents)):
+            AgentPrintingDicts[agent][str(i)] = AgentRewards[agent][i]
+    
+    outputfilehandle = open(output_file, 'a')
+    outputwriter = csv.DictWriter(outputfilehandle, fieldnames = fieldnamesorder, delimiter=',', quotechar='"', extrasaction='raise')
+    outputwriter.writeheader();
+    for i in range(0, len(Agents)):
+        outputwriter.writerow(AgentPrintingDicts[i])
+    outputfilehandle.close()
+
+#for deterministic agents:
+    #For each agent, aggregate/average their preferences over the experiments and report them
+#for non-deterministic agents (later):
+    #aggregate by type of agent or something, or combine all of them, or just do the middle?
     
 print("done")
 #def bar():  return 1
