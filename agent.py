@@ -11,6 +11,7 @@ has a vector of past rewards
 has a function that takes in past actions/rewards, time, some variables --> an action for next step
     
 """
+import random
 
 class Agent:
     def __init__(self, loc, actspace, name = ''):
@@ -20,10 +21,8 @@ class Agent:
         self.location= loc
         self.actionspace = actspace
     
-    def act(self, t = -1, variables = {}):
-        action = 1
-        
-        
+    def act(self, BSs, variables, t = -1):
+        action = random.randint(0, len(BSs)-1)      
         self.actions.append(action)
         return action
         

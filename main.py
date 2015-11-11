@@ -22,43 +22,46 @@ components:
     
 
 """
-CASE = 0
-COEXISTENCEPROTOCOL = 0
-K = .5
-beta = .95
-CONNECTIONDISTANCE = 3
-
+import csv
+import numpy as np
 from agent import Agent
 import environment
 from environment import BS
 import random
 from collections import Counter
+import matplotlib.pyplot
+import pylab
+
+input_file = 'experiments.csv'
+csv_file = csv.DictReader(open(input_file, 'r'), delimiter=',', quotechar='"')
+
+output_file = 'data.csv'
+output_csv_file = csv.writer(open(output_file, 'w'), delimiter=',', quotechar='"')
 
 def getNetworkGeometry(CASE):
     BSs = []
-    UEs = []
+    UElocs = []
     if CASE is 0:
         BSs = [BS((-1, 0), 'LTE'), BS((1, 0), 'WiFi')]
-        UEs= [(0,0)]
-    return [BSs, UEs]
+        UElocs = [(0,0)]
+    if CASE is 1:
+        BSs = [BS((-1, 0), 'LTE'), BS((1, 0), 'WiFi')]
+        UElocs = [(0,0), (0,0)]
+    return [BSs, UElocs]
 
-def createAgents(CASE, UEs, BSs):
+def createAgents(CASE, UElocs, BSs):
     Agents= []
     actspace = range(0, len(BSs))
-    for i in range(0,len(UEs)):
-        Agents.append(Agent(UEs[i], actspace))
+    for i in range(0,len(UElocs)):
+        Agents.append(Agent(UElocs[i], actspace))
     return Agents
-
-#dictionary of variables and functions that determine those variables at each time instant    
-def createVariableDictionary():
-    return {}
-    
+  
 def determineWhichBSTransmitting(BSs, variables):
     x = [0]*len(BSs)
     if COEXISTENCEPROTOCOL is 0: #each LTE-U node transmit with probability K. Each WiFi node transmits if no one around it is transmitting.
-        K = variables["K"]
+        K = variables["K_coexistence"]
         for i in range(0, len(BSs)):
-            if BS.type == 'LTE':
+            if BSs[i].type== 'LTE':
                 if random.random() <= K : #true with probability K
                     x[i] = 1
     for i in range(0, len(BSs)):
@@ -66,46 +69,57 @@ def determineWhichBSTransmitting(BSs, variables):
         for j in range(0, len(BSs)):
             if i==j:
                 continue
-            if environment.distance(BSs[i], BSs[j]) <= CONNECTIONDISTANCE and x[j] == 1:
+            if environment.distance(BSs[i], BSs[j]) <= variables['ConnectionDistance'] and x[j] == 1:
                 #don't turn this BS on.
                 turnon = False;
         if turnon:
             x[i] = 1
     return x
 
-def determineRewards(BSs, UEs, actions, instvariables):
-    x = determineWhichBSTransmitting(BSs, instvariables);
+def determineRewards(BSs, Agents, actions, variables):
+    x = determineWhichBSTransmitting(BSs, variables);
     Ntx = Counter(actions)     #find number of UEs that chose each BS
-    rewards = [0]*len(UEs)
-    for i in range(0, len(UEs)):
+    rewards = [0]*len(Agents)
+    for i in range(0, len(Agents)):
         if x[actions[i]]  == 0: #BS it is connected to is not transmitting
             continue
-        rewards[i] = environment.calculatecapacity(UEs[i], BSs[actions[i]], Ntx, instvariables)   
+        rewards[i] = environment.calculatecapacity(Agents[i], BSs[actions[i]], Ntx[actions[i]], variables)   
     return rewards
+
+for configuration in csv_file:
+    variables = configuration;
+    for var in variables:
+        if var != 'ExperimentName':
+            variables[var]= float(variables[var])
+    CASE = int(variables['CASE'])
+    COEXISTENCEPROTOCOL = int(variables['COEXISTENCEPROTOCOL'])        
+    NumExperiments = int(variables['NumRepeat']);
+    AgentRewards = {}
+    NumExperiments = 1
+    for experiment_num in range(0, NumExperiments):
+        [BSs, UElocs] = getNetworkGeometry(CASE);
+        Agents = createAgents(CASE, UElocs, BSs)
+        
+        t = 0
+        while (True):
+        #    ask each agent for its play
+            actions = []
+            for agent in Agents:
+                actions.append(agent.act(BSs, variables, t))
+            rewards = determineRewards(BSs, Agents, actions, variables) #    calculate rewards for each agent
+            for i in range(0, len(Agents)): #        send this back to the agent
+                Agents[i].updatereward(rewards[i])    
+            
+        #    continue with probability 1-beta. (actually breaking at time T_cutoff for now)
+            t = t+1    
+            if t >= variables['T_cutoff']:
+                break
+        matplotlib.pyplot.scatter(range(0, int(variables['T_cutoff'])), Agents[0].rewards)
+        matplotlib.pyplot.show()
+        
+        
     
-
-[BSs, UEs] = getNetworkGeometry(CASE);
-Agents = createAgents(CASE, UEs, BSs)
-
-
-t = 0
-while (True):
-#    determine variables that update (either random or some algorithm)
-    instvariables = createVariableDictionary()
-#    ask each agent for its play
-    actions = []
-    for agent in Agents:
-        actions.append(agent.act(t, instvariables))
-    rewards = determineRewards(actions, instvariables) #    calculate rewards for each agent
-    for i in range(0, len(Agents)): #        send this back to the agent
-        Agents[i].updatereward(rewards[i])    
-    
-#    continue with probability 1-beta. 
-    t = t+1    
-    if random.random() > beta:
-        break
-    
-
+print("done")
 #def bar():  return 1
 #mydct = {'foo': bar}
 #mydct['foo']()

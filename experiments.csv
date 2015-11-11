@@ -1,0 +1,3 @@
+ExperimentName,NumRepeat,CASE,COEXISTENCEPROTOCOL,K_coexistence,T_cutoff,ConnectionDistance,B,No,P,K_PL,alpha
+test,100,0,0,0.5,100,3,20000000,1.00E-14,1,1,3
+Case1,100,1,0,0.5,100,3,20000000,1.00E-14,1,1,3

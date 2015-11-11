@@ -23,10 +23,10 @@ def calculatecapacity(UE, BS, N_connected, variables):
     B = variables['B']
     No = variables['No']
     Pt = variables['P']
-    K = variables['K']
+    K = variables['K_PL']
     alpha = variables['alpha']
     dist = distanceloc(UE.location, BS.location)
-    Pr = Pt*K*pow(dist, -alpha)
+    Pr = Pt * K * pow(dist, -alpha)
     
     gamma_bar = Pr/B/No
     gamma = random.expovariate(1./gamma_bar) #for now, assume uncorrelated fading even when UEs on top of each other
