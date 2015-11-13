@@ -24,7 +24,7 @@ components:
 """
 import csv
 import numpy as np
-from agent import Agent
+from agent import Agent, Agent_BasicLearning
 import environment
 from environment import BS
 import random
@@ -52,7 +52,7 @@ def createAgents(CASE, UElocs, BSs):
     Agents= []
     actspace = range(0, len(BSs))
     for i in range(0,len(UElocs)):
-        Agents.append(Agent(UElocs[i], actspace))
+        Agents.append(Agent_BasicLearning(UElocs[i], actspace))
     return Agents
   
 def determineWhichBSTransmitting(BSs, variables):
@@ -122,8 +122,11 @@ for configuration in csv_file:
     for i in range(0, len(Agents)):
         AgentRewards[i] = AgentRewards[i]/NumExperiments
     matplotlib.pyplot.scatter(range(0, int(variables['T_cutoff'])), AgentRewards[0])
+    matplotlib.pyplot.xlabel('t')
+    matplotlib.pyplot.ylabel('C_{avg}')
     matplotlib.pyplot.show()
-    
+
+
     #output results:
     
     fieldnamesorder = ['ExperimentName', 'CASE', 'COEXISTENCEPROTOCOL', 'Agent_type', 'Agent_location']
