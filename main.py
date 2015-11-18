@@ -24,7 +24,7 @@ components:
 """
 import csv
 import numpy as np
-from agent import Agent, Agent_BasicLearning
+from agent import Agent, Agent_BasicLearning, Agent_BasicProportionalLearning
 import environment
 from environment import BS
 import random
@@ -32,6 +32,8 @@ from collections import Counter
 import matplotlib.pyplot
 import pylab
 import time
+from scipy import stats
+
 input_file = 'experiments.csv'
 csv_file = csv.DictReader(open(input_file, 'r'), delimiter=',', quotechar='"')
 
@@ -52,18 +54,21 @@ def createAgents(CASE, UElocs, BSs):
     Agents= []
     actspace = range(0, len(BSs))
     for i in range(0,len(UElocs)):
-        Agents.append(Agent_BasicLearning(UElocs[i], actspace))
+        Agents.append(Agent_BasicProportionalLearning(UElocs[i], actspace))
     return Agents
   
-def determineWhichBSTransmitting(BSs, variables):
+def determineWhichBSTransmitting(BSs, variables, t=-1, t_cutoff=-1):
     x = [0]*len(BSs)
     if COEXISTENCEPROTOCOL is 0: #each LTE-U node transmit with probability K. Each WiFi node transmits if no one around it is transmitting.
         K = variables["K_coexistence"]
+        K = float(t)/t_cutoff; ## TODO undo. Currently testing the adaptation.
         for i in range(0, len(BSs)):
             if BSs[i].type== 'LTE':
                 if random.random() <= K : #true with probability K
                     x[i] = 1
     for i in range(0, len(BSs)):
+        if BSs[i].type == 'LTE':
+            continue;
         turnon = True
         for j in range(0, len(BSs)):
             if i==j:
@@ -75,8 +80,8 @@ def determineWhichBSTransmitting(BSs, variables):
             x[i] = 1
     return x
 
-def determineRewards(BSs, Agents, actions, variables):
-    x = determineWhichBSTransmitting(BSs, variables);
+def determineRewards(BSs, Agents, actions, variables, t=-1, t_cutoff=-1):
+    x = determineWhichBSTransmitting(BSs, variables, t, t_cutoff);
     Ntx = Counter(actions)     #find number of UEs that chose each BS
     rewards = [0]*len(Agents)
     for i in range(0, len(Agents)):
@@ -87,6 +92,8 @@ def determineRewards(BSs, Agents, actions, variables):
 
 for configuration in csv_file:
     variables = configuration;
+    if variables['VALID'] == '0':
+        continue
     for var in variables:
         if var != 'ExperimentName':
             variables[var]= float(variables[var])
@@ -96,7 +103,11 @@ for configuration in csv_file:
     COEXISTENCEPROTOCOL = int(variables['COEXISTENCEPROTOCOL'])        
     NumExperiments = int(variables['NumRepeat']);
     AgentRewards = []
+    AgentActions = []
+
     for experiment_num in range(0, NumExperiments):
+        if experiment_num % 1000 == 1:
+                print(experiment_num) 
         [BSs, UElocs] = getNetworkGeometry(CASE);
         Agents = createAgents(CASE, UElocs, BSs)
         
@@ -106,7 +117,7 @@ for configuration in csv_file:
             actions = []
             for agent in Agents:
                 actions.append(agent.act(BSs, variables, t))
-            rewards = determineRewards(BSs, Agents, actions, variables) #    calculate rewards for each agent
+            rewards = determineRewards(BSs, Agents, actions, variables, t, variables['T_cutoff']) #    calculate rewards for each agent
             for i in range(0, len(Agents)): #        send this back to the agent
                 Agents[i].updatereward(rewards[i])    
             
@@ -117,13 +128,27 @@ for configuration in csv_file:
         for i in range(0, len(Agents)):
             if experiment_num is 0:
                 AgentRewards.append(np.array(Agents[i].rewards))
+                AgentActions.append(np.array(Agents[i].actions))
             else:
                 AgentRewards[i] = AgentRewards[i] + np.array(Agents[i].rewards)
+                AgentActions[i] = AgentActions[i] + np.array(Agents[i].actions)
+               
     for i in range(0, len(Agents)):
         AgentRewards[i] = AgentRewards[i]/NumExperiments
-    matplotlib.pyplot.scatter(range(0, int(variables['T_cutoff'])), AgentRewards[0])
+        AgentActions[i] = AgentActions[i]/NumExperiments
+        
+    
+    slope, intercept, r_value, p_value, std_err = stats.linregress(range(5, int(variables['T_cutoff'])),AgentRewards[0][5:])
+    matplotlib.pyplot.scatter(range(5, int(variables['T_cutoff'])), AgentRewards[0][5:])
+    matplotlib.pyplot.plot(range(5, int(variables['T_cutoff'])), slope*range(5, int(variables['T_cutoff'])) + intercept)
     matplotlib.pyplot.xlabel('t')
     matplotlib.pyplot.ylabel('C_{avg}')
+    matplotlib.pyplot.show()
+    
+    #visualize actual actions.
+    matplotlib.pyplot.scatter(range(0, int(variables['T_cutoff'])), AgentActions[0])
+    matplotlib.pyplot.xlabel('t')
+    matplotlib.pyplot.ylabel('Avg Action')
     matplotlib.pyplot.show()
 
 

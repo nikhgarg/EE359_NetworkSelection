@@ -50,16 +50,40 @@ class Agent_ReinforcementLearning(Agent):
 
 #With probability p, go to the one that maximized so far. with prob 1-p, do the other one
 class Agent_BasicLearning(Agent):
-    def act(self, BSs, variables, t = -1): ## TODO write this code
-        p = .8;
-        avgOfEach = np.zeros(len(BSs))
-        for i in range(0,len(BSs)):
-            indices = [ind for ind, j in enumerate(self.actions) if j == i]
-            avgOfEach[i] = np.Inf if len(indices)==0 else sum([self.rewards[j] for j in indices])/(float(len(indices)))
-        BSMax = np.argmax(avgOfEach)
+    def act(self, BSs, variables, t = -1):
+        p = 1-variables['p_explore'];
         if random.random() < p:
-            action = BSMax
+            avgOfEach = np.zeros(len(BSs))
+            for i in range(0,len(BSs)):
+                indices = [ind for ind, j in enumerate(self.actions) if j == i]
+                avgOfEach[i] = np.Inf if len(indices)==0 else sum([self.rewards[j] for j in indices])/(float(len(indices)))
+            action = np.argmax(avgOfEach)
         else:
             action = random.randint(0, len(BSs)-1)      
+        self.actions.append(action)
+        return action
+        
+#With probability p, go to the one that maximized so far. with prob 1-p, do the other one
+class Agent_BasicProportionalLearning(Agent):
+    def act(self, BSs, variables, t = -1):
+        pexplore = 1-variables['p_explore'];
+        avgOfEach = np.zeros(len(BSs))
+        if random.random() < pexplore:
+            for i in range(0,len(BSs)):
+                indices = [ind for ind, j in enumerate(self.actions) if (j == i and t - ind < 20)]
+                avgOfEach[i] = 1e20 if len(indices)==0 else sum([self.rewards[j] for j in indices])/(float(len(indices)))
+            sumavg = sum(avgOfEach)
+            avgOfEach = [i/sumavg for i in avgOfEach]
+            cdf = avgOfEach
+            for i in range(1, len(cdf)):
+                cdf[i] = cdf[i-1] + avgOfEach[i];
+            val= random.random();
+            action = 0;
+            for i in range(0, len(cdf)):
+                if cdf[i] > val:
+                    action = i;
+                    break;
+        else:
+            action = random.randint(0, len(BSs)-1) 
         self.actions.append(action)
         return action
