@@ -134,7 +134,7 @@ for configuration in csv_file:
         #    ask each agent for its play
             actions = []
             for agent in Agents:
-                actions.append(agent.act(BSs, variables, t))
+                actions.append(agent.act(BSs, variables, Agents, t))
             rewards = determineRewards(BSs, Agents, actions, variables, t, variables['T_cutoff']) #    calculate rewards for each agent
             for i in range(0, len(Agents)): #        send this back to the agent
                 Agents[i].updatereward(rewards[i])    

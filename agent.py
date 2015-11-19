@@ -22,7 +22,7 @@ class Agent:
         self.location= loc
         self.actionspace = actspace
     
-    def act(self, BSs, variables, t = -1):
+    def act(self, BSs, variables, Agents=None, t = -1):
         action = random.randint(0, len(BSs)-1)      
         self.actions.append(action)
         return action
@@ -31,26 +31,26 @@ class Agent:
         self.rewards.append(reward)
     
 class Agent_StubbornLTE(Agent):
-    def act(self, BSs, variables, t = -1):
+    def act(self, BSs, variables,Agents=None, t = -1):
         action = 0 #TODO change when go to more complex networks     
         self.actions.append(action)
         return action
 
 class Agent_StubbornWiFi(Agent):
-    def act(self, BSs, variables, t = -1):
+    def act(self, BSs, variables, Agents=None, t = -1):
         action = 1 #TODO change when go to more complex networks     
         self.actions.append(action)
         return action
 
 class Agent_ReinforcementLearning(Agent):
-    def act(self, BSs, variables, t = -1): ## TODO write this code
+    def act(self, BSs, variables,Agents=None, t = -1): ## TODO write this code
         action = random.randint(0, len(BSs)-1)      
         self.actions.append(action)
         return action
 
 #With probability p, go to the one that maximized so far. with prob 1-p, do the other one
 class Agent_BasicLearning(Agent):
-    def act(self, BSs, variables, t = -1):
+    def act(self, BSs, variables,Agents=None, t = -1):
         p = 1-variables['p_explore'];
         if random.random() < p:
             avgOfEach = np.zeros(len(BSs))
@@ -65,7 +65,7 @@ class Agent_BasicLearning(Agent):
         
 #With probability p, go to the one that maximized so far. with prob 1-p, do the other one
 class Agent_BasicProportionalLearning(Agent):
-    def act(self, BSs, variables, t = -1):
+    def act(self, BSs, variables,Agents=None, t = -1):
         pexplore = 1-variables['p_explore'];
         avgOfEach = np.zeros(len(BSs))
         if random.random() < pexplore:
