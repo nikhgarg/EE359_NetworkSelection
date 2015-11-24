@@ -15,19 +15,20 @@ import random
 import numpy as np
 
 class Agent:
-    def __init__(self, loc, actspace, name = ''):
+    def __init__(self, loc, actspace, index, name = ''):
         self.name = name
         self.actions = []
         self.rewards = []
         self.location= loc
         self.actionspace = actspace
+        self.index= index
     
     def act(self, BSs, variables, Agents=None, t = -1):
         action = random.randint(0, len(BSs)-1)      
         self.actions.append(action)
         return action
         
-    def updatereward(self, reward):
+    def updatereward(self, reward, Agents = None):
         self.rewards.append(reward)
     
 class Agent_StubbornLTE(Agent):
@@ -67,8 +68,8 @@ class Agent_BasicLearning(Agent):
 class Agent_BasicProportionalLearning(Agent):
     def act(self, BSs, variables,Agents=None, t = -1):
         pexplore = 1-variables['p_explore'];
-        avgOfEach = np.zeros(len(BSs))
         if random.random() < pexplore:
+            avgOfEach = np.zeros(len(BSs))
             for i in range(0,len(BSs)):
                 indices = [ind for ind, j in enumerate(self.actions) if (j == i and t - ind < 20)]
                 avgOfEach[i] = 1e20 if len(indices)==0 else sum([self.rewards[j] for j in indices])/(float(len(indices)))
@@ -84,6 +85,44 @@ class Agent_BasicProportionalLearning(Agent):
                     action = i;
                     break;
         else:
+            action = random.randint(0, len(BSs)-1) 
+        self.actions.append(action)
+        return action
+
+#current class only works with 2 agents. Would explode exponentially with more.        
+class Agent_FictitiousPlay(Agent):
+    def __init__(self, loc, actspace, index, name = ''):
+        super().__init__(loc, actspace, index)
+        self.distribution = np.zeros((len(actspace), len(actspace))) #joint distribution (with probabilities)
+        self.distribution_rewards = np.zeros((len(actspace), len(actspace))) #joint distribution (with rewards)
+
+    def updatereward(self, reward, Agents):
+        super().updatereward(reward)
+        # update join probabilities (list of who did what)
+        myact = self.actions[-1]
+        otheract = Agents[1-self.index].actions[-1]
+        self.distribution[myact, otheract] = self.distribution[myact, otheract] + 1
+        self.distribution_rewards[myact, otheract] = self.distribution_rewards[myact, otheract] + reward
+
+    def act(self, BSs, variables,Agents, t): ## TODO write this code
+        pexplore = 1-variables['p_explore'];
+        if random.random() < pexplore and t > 10: #exploit stage
+            #calculate expected gain for each of your actions
+                    # (each row is an action you can take, column is what they can take)
+                    #Find probability of each of their actions.
+            other_probabilities = [sum(self.distribution[:,i]) for i in range(0, len(BSs))]
+            #For each of your actions, find avg from each of their actions times the probability of that action
+            avgOfEach = np.zeros(len(BSs))
+            for i in range(0, len(BSs)):
+                summ = 0;
+                for j in range(0, len(BSs)):
+                    if self.distribution[i,j] > 0:
+                        summ = summ + (self.distribution_rewards[i,j]/self.distribution[i,j])*other_probabilities[j]
+                avgOfEach[i] = summ
+            
+            #choose action that maximizes expected
+            action = avgOfEach.argmax()
+        else: #explore stage
             action = random.randint(0, len(BSs)-1) 
         self.actions.append(action)
         return action

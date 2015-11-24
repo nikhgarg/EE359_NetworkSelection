@@ -24,7 +24,7 @@ components:
 """
 import csv
 import numpy as np
-from agent import Agent, Agent_BasicLearning, Agent_BasicProportionalLearning, Agent_StubbornLTE, Agent_StubbornWiFi
+from agent import *
 import environment
 from environment import BS
 import random
@@ -49,7 +49,7 @@ def getNetworkGeometry(CASE):
         UElocs = [(0,0), (0,0)]
     return [BSs, UElocs]
     
-AgentNameDictionary = {'Agent' : Agent, 'BasicLearning' : Agent_BasicLearning, 'BasicProportionalLearning': Agent_BasicProportionalLearning, 'StubbornLTE' : Agent_StubbornLTE, 'StubbornWiFi' : Agent_StubbornWiFi}
+AgentNameDictionary = {'Agent' : Agent, 'BasicLearning' : Agent_BasicLearning, 'BasicProportionalLearning': Agent_BasicProportionalLearning, 'StubbornLTE' : Agent_StubbornLTE, 'StubbornWiFi' : Agent_StubbornWiFi, 'FictitiousPlay' : Agent_FictitiousPlay}
 
 def createAgents(variables):
     Agents= []
@@ -68,9 +68,9 @@ def createAgents(variables):
             UEloc[1] = 2*random.random() - 1
         Ag = None
         if AgentTypeString in list(variables.keys()):
-            Ag = AgentNameDictionary[variables[AgentTypeString]](UEloc, actspace)
+            Ag = AgentNameDictionary[variables[AgentTypeString]](UEloc, actspace, i)
         else:
-            Ag = random.choice(list(AgentNameDictionary.values()))(UEloc, actspace)      
+            Ag = random.choice(list(AgentNameDictionary.values()))(UEloc, actspace, i)      
         Agents.append(Ag)
     return [Agents, BSs]
   
@@ -78,7 +78,7 @@ def determineWhichBSTransmitting(BSs, variables, t=-1, t_cutoff=-1):
     x = [0]*len(BSs)
     if COEXISTENCEPROTOCOL is 0: #each LTE-U node transmit with probability K. Each WiFi node transmits if no one around it is transmitting.
         K = variables["K_coexistence"]
-        K = float(t)/t_cutoff; ## TODO undo. Currently testing the adaptation.
+ #       K = float(t)/t_cutoff; ## TODO undo. Currently testing the adaptation.
         for i in range(0, len(BSs)):
             if BSs[i].type== 'LTE':
                 if random.random() <= K : #true with probability K
@@ -137,7 +137,7 @@ for configuration in csv_file:
                 actions.append(agent.act(BSs, variables, Agents, t))
             rewards = determineRewards(BSs, Agents, actions, variables, t, variables['T_cutoff']) #    calculate rewards for each agent
             for i in range(0, len(Agents)): #        send this back to the agent
-                Agents[i].updatereward(rewards[i])    
+                Agents[i].updatereward(rewards[i], Agents)    
             
         #    continue with probability 1-beta. (actually breaking at time T_cutoff for now)
             t = t+1
@@ -157,17 +157,19 @@ for configuration in csv_file:
         
     
     slope, intercept, r_value, p_value, std_err = stats.linregress(range(5, int(variables['T_cutoff'])),AgentRewards[0][5:])
-    matplotlib.pyplot.scatter(range(5, int(variables['T_cutoff'])), AgentRewards[0][5:])
-    matplotlib.pyplot.plot(range(5, int(variables['T_cutoff'])), slope*range(5, int(variables['T_cutoff'])) + intercept)
-    matplotlib.pyplot.xlabel('t')
-    matplotlib.pyplot.ylabel('C_{avg}')
-    matplotlib.pyplot.show()
+#    matplotlib.pyplot.scatter(range(5, int(variables['T_cutoff'])), AgentRewards[0][5:])
+#    matplotlib.pyplot.plot(range(5, int(variables['T_cutoff'])), slope*range(5, int(variables['T_cutoff'])) + intercept)
+#    matplotlib.pyplot.xlabel('t')
+#    matplotlib.pyplot.ylabel('C_{avg}')
+#    matplotlib.pyplot.show()
     
     #visualize actual actions.
-    matplotlib.pyplot.scatter(range(0, int(variables['T_cutoff'])), AgentActions[0])
-    matplotlib.pyplot.xlabel('t')
-    matplotlib.pyplot.ylabel('Avg Action')
-    matplotlib.pyplot.show()
+    for i in range(0, len(Agents)):
+        matplotlib.pyplot.scatter(range(0, int(variables['T_cutoff'])), AgentActions[i])
+        matplotlib.pyplot.xlabel('t')
+        matplotlib.pyplot.ylabel('Avg Action')
+        matplotlib.pyplot.title('Agent' + str(i))
+        matplotlib.pyplot.show()
 
 
     #output results:
