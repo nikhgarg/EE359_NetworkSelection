@@ -13,6 +13,7 @@ has a function that takes in past actions/rewards, time, some variables --> an a
 """
 import random
 import numpy as np
+from sklearn.naive_bayes import BernoulliNB
 
 class Agent:
     def __init__(self, loc, actspace, index, name = ''):
@@ -120,6 +121,44 @@ class Agent_FictitiousPlay(Agent):
                         summ = summ + (self.distribution_rewards[i,j]/self.distribution[i,j])*other_probabilities[j]
                 avgOfEach[i] = summ
             
+            #choose action that maximizes expected
+            action = avgOfEach.argmax()
+        else: #explore stage
+            action = random.randint(0, len(BSs)-1) 
+        self.actions.append(action)
+        return action
+        
+class Agent_NaiveBayes(Agent): #TODO. Currently only works with 1 other user. 
+    def __init__(self, loc, actspace, index, name = ''):
+        super().__init__(loc, actspace, index)
+        self.distribution = np.zeros((len(actspace), len(actspace))) #joint distribution (with probabilities)
+        self.distribution_rewards = np.zeros((len(actspace), len(actspace))) #joint distribution (with rewards)
+        self.model= BernoulliNB();
+        self.windowsize = 10; # Configurable
+        
+    def updatereward(self, reward, Agents):
+        super().updatereward(reward)
+        # update join probabilities (list of who did what)
+        myact = self.actions[-1]
+        otheract = Agents[1-self.index].actions[-1]
+        self.distribution_rewards[myact, otheract] = self.distribution_rewards[myact, otheract] + reward
+        self.distribution[myact, otheract] = self.distribution[myact, otheract] + 1
+
+        #update model:
+        OtherActions = Agents[1-self.index].actions;
+        if len(OtherActions) > self.windowsize + 1:
+            self.model.partial_fit(OtherActions[-self.windowsize-2:-2], [OtherActions[-1]], classes = self.actionspace)
+
+    def act(self, BSs, variables,Agents, t): ## TODO write this code
+        pexplore = 1-variables['p_explore'];
+        if random.random() < pexplore and t > self.windowsize + 2: #exploit stage
+            #predict what the other user will do
+            others_predict = int(round(self.model.predict(Agents[1-self.index].actions[-self.windowsize-1:-1])[0]));
+            #find the action that maximizes assuming the the other does the predicted value
+            avgOfEach = np.zeros(len(BSs))
+            for i in range(0, len(BSs)):
+                if self.distribution[i,others_predict] > 0:
+                    avgOfEach[i] = self.distribution_rewards[i,others_predict]/self.distribution[i,others_predict]
             #choose action that maximizes expected
             action = avgOfEach.argmax()
         else: #explore stage
