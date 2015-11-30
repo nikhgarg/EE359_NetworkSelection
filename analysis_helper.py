@@ -20,6 +20,87 @@ import prettyplotlib as ppl
 #    K = variables['K_PL']
 #    alpha = variables['alpha']
 
+#	\item Find any dominant strategies, and corresponding best-response strategies. 
+#	\item If no dominant strategies exist, find the mixed strategy in which each UE connects to each BS with nonzero probability and calculate the corresponding log sum rate.
+#	\item For each of the 2 pure strategies, calculate the log sum rate.
+#	\item Choose the strategy that maximizes the log sum rate.
+
+def findDominantStrategies(C, Kcoex):
+    UE0dominant = -1
+    UE1dominant = -1
+    #if 0 has dominant strategy, find 1's best response to that strategy
+    #if 0 does not have dominant, check if 1 does
+        #if 1 does, find 0's best response
+        #if 1 doesn't indicate that there are no dominant strategies.
+            #this case should correspond to none found earlier...
+        
+    if 1/2*Kcoex*C[0,0] > (1-Kcoex)*C[0,1]: # BS0 dominant when 1/2*Kcoex*C00 > (1-K)C01
+        UE0dominant = 0
+        if 1/2*Kcoex*C[1,0] > (1-Kcoex)*C[1,1]: #best response to BS0
+            UE1dominant = 0
+        else:
+            UE1dominant = 1
+        return [UE0dominant, UE1dominant]
+    elif (1-Kcoex)/2*C[0,1] > Kcoex*C[0,0]:         # BS1 dominant when (1-K)/2*C01 > KC00
+        UE0dominant = 1
+        if Kcoex*C[1,0] > (1-Kcoex)/2*C[1,1]:
+            UE1dominant = 0
+        else:
+            UE1dominant = 1
+        return [UE0dominant, UE1dominant]
+    elif 1/2*Kcoex*C[1,0] > (1-Kcoex)*C[1,1]: #UE1 has BS0 dominant
+        UE1dominant = 0
+        if 1/2*Kcoex*C[0,0] > (1-Kcoex)*C[0,1]: #UE0's best response to BS0
+            UE0dominant = 0
+        else:
+            UE0dominant = 1
+        return [UE0dominant, UE1dominant]
+    elif (1-Kcoex)/2*C[1,1] > Kcoex*C[1,0]:         # 
+        UE1dominant = 1
+        if Kcoex*C[0,0] > (1-Kcoex)/2*C[0,1]:
+            UE0dominant = 0
+        else:
+            UE0dominant = 1
+        return [UE0dominant, UE1dominant]
+    return None
+    
+def findTrueMixedStrategy(C, Kcoex):
+    a = 1/2*Kcoex*C[1,0] - Kcoex*C[1,0]    
+    c = Kcoex*C[1,0]
+    b = (1-Kcoex)*C[1,1] - (1-Kcoex)/2*C[1,1]
+    d = (1-Kcoex)/2*C[1,1]
+    print(a, b, c, d)
+    mixed0 = [(d-c)/(a-b), 1-(d-c)/(a-b)]
+    
+    a = 1/2*Kcoex*C[0,0] - Kcoex*C[0,0]    
+    c = Kcoex*C[0,0]
+    b = (1-Kcoex)*C[0,1] - (1-Kcoex)/2*C[0,1]
+    d = (1-Kcoex)/2*C[0,1]
+    print(a, b, c, d)
+    mixed1 = [(d-c)/(a-b), 1-(d-c)/(a-b)]
+    
+    return [mixed0, mixed1];
+
+def findPossibleTrueStrategies(C, Kcoex):
+    pure1 = [[1, 0], [1, 0]]
+    pure2 = [[0, 1], [1, 0]]
+    pure3 = [[1, 0], [0, 1]]
+    pure4 = [[0, 1], [0, 1]]
+    return [pure1, pure2, pure3, pure4]
+    
+def findBestMixedStrategy(C, Kcoex):
+    print(C)
+    strategies = findPossibleTrueStrategies(C, Kcoex)
+    strategies.append( findTrueMixedStrategy(C, Kcoex))
+    for strat in strategies:
+        print(strat)
+        
+def testfindMixedStrategies():
+    A = np.matrix([[np.random.rand(), np.random.rand()], [np.random.rand(), np.random.rand()]])
+    A = np.matrix([[1.5,1], [1.5,1]])
+    K = .5
+    findBestMixedStrategy(A, K)
+    #A = np.matrix([[.1,0], [.1,.1]])
 
 def calc_correlated_equil(C):
     minp = max(1/2*C[0,1]/(C[0,0] + 1/2*C[0,1]), 1/2*C[1,1]/(C[1,0] + 1/2*C[1,1]))
@@ -92,6 +173,7 @@ def Kheatmap():
     plt.pcolor(xloc, yloc, K)
     plt.colorbar()
     plt.title("K value at transition")
-#Kheatmap()
-    
-test_calc_correlated()
+#Kheatmap()  
+#test_calc_correlated()
+
+testfindMixedStrategies()
