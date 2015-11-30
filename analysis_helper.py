@@ -69,14 +69,12 @@ def findTrueMixedStrategy(C, Kcoex):
     c = Kcoex*C[1,0]
     b = (1-Kcoex)*C[1,1] - (1-Kcoex)/2*C[1,1]
     d = (1-Kcoex)/2*C[1,1]
-    print(a, b, c, d)
     mixed0 = [(d-c)/(a-b), 1-(d-c)/(a-b)]
     
     a = 1/2*Kcoex*C[0,0] - Kcoex*C[0,0]    
     c = Kcoex*C[0,0]
     b = (1-Kcoex)*C[0,1] - (1-Kcoex)/2*C[0,1]
     d = (1-Kcoex)/2*C[0,1]
-    print(a, b, c, d)
     mixed1 = [(d-c)/(a-b), 1-(d-c)/(a-b)]
     
     return [mixed0, mixed1];
@@ -89,19 +87,29 @@ def findPossibleTrueStrategies(C, Kcoex):
     return [pure1, pure2, pure3, pure4]
     
 def findBestMixedStrategy(C, Kcoex):
-    print(C)
     strategies = findPossibleTrueStrategies(C, Kcoex)
     strategies.append( findTrueMixedStrategy(C, Kcoex))
-    for strat in strategies:
-        print(strat)
-        
+    utils = np.zeros(5)
+    for i in range(0, 5):
+        utils[i] = calculateLogSumUtilitiesFromMixedStrategies(strategies[i], Kcoex, C)
+    return strategies[np.argmax(utils)]        
+    
+def calcUtilityFromStrategy(userind, strategy, Kcoex, A):
+    u = A[userind,0]*Kcoex*strategy[userind][0]*(strategy[1-userind][0]/2 + strategy[1-userind][1]) + A[userind,1]*(1-Kcoex)*strategy[userind][1]*(strategy[1-userind][0] + strategy[1-userind][1]/2)
+    return u
+
+def calculateLogSumUtilitiesFromMixedStrategies(strategy, Kcoex, A):
+    u0 = calcUtilityFromStrategy(0, strategy, Kcoex, A)
+    u1 = calcUtilityFromStrategy(1, strategy, Kcoex, A)
+    return np.log2(u0) + np.log2(u1)
+    
 def testfindMixedStrategies():
     A = np.matrix([[np.random.rand(), np.random.rand()], [np.random.rand(), np.random.rand()]])
-    A = np.matrix([[1.5,1], [1.5,1]])
+ #   A = np.matrix([[3,1], [4,2]])
     K = .5
-    findBestMixedStrategy(A, K)
+    print(findBestMixedStrategy(A, K))
     #A = np.matrix([[.1,0], [.1,.1]])
-
+################################################
 def calc_correlated_equil(C):
     minp = max(1/2*C[0,1]/(C[0,0] + 1/2*C[0,1]), 1/2*C[1,1]/(C[1,0] + 1/2*C[1,1]))
     maxp = min(C[0,1]/(1/2*C[0,0] + C[0,1]), C[1,1]/(1/2*C[1,0] + C[1,1]))
