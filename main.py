@@ -156,16 +156,18 @@ for configuration in csv_file:
         AgentActions[i] = AgentActions[i]/NumExperiments
         
     
-    slope, intercept, r_value, p_value, std_err = stats.linregress(range(5, int(variables['T_cutoff'])),AgentRewards[0][5:])
-#    matplotlib.pyplot.scatter(range(5, int(variables['T_cutoff'])), AgentRewards[0][5:])
-#    matplotlib.pyplot.plot(range(5, int(variables['T_cutoff'])), slope*range(5, int(variables['T_cutoff'])) + intercept)
-#    matplotlib.pyplot.xlabel('t')
-#    matplotlib.pyplot.ylabel('C_{avg}')
-#    matplotlib.pyplot.show()
-    
-    #visualize actual actions.
+   
+    #visualize stuff.
     for i in range(0, len(Agents)):
-        matplotlib.pyplot.scatter(range(0, int(variables['T_cutoff'])), AgentActions[i])
+        slope, intercept, r_value, p_value, std_err = stats.linregress(range(5, int(variables['T_cutoff'])),AgentRewards[i][5:])
+        matplotlib.pyplot.plot(range(5, int(variables['T_cutoff'])), AgentRewards[i][5:])
+        matplotlib.pyplot.plot(range(5, int(variables['T_cutoff'])), slope*range(5, int(variables['T_cutoff'])) + intercept)
+        matplotlib.pyplot.xlabel('t')
+        matplotlib.pyplot.ylabel('R_{avg}')
+        matplotlib.pyplot.title('Agent' + str(i))
+        matplotlib.pyplot.show()
+    
+        matplotlib.pyplot.plot(range(0, int(variables['T_cutoff'])), AgentActions[i])
         matplotlib.pyplot.xlabel('t')
         matplotlib.pyplot.ylabel('Avg Action')
         matplotlib.pyplot.title('Agent' + str(i))

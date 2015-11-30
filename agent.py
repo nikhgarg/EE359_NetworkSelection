@@ -135,6 +135,7 @@ class Agent_NaiveBayes(Agent): #TODO. Currently only works with 1 other user.
         self.distribution_rewards = np.zeros((len(actspace), len(actspace))) #joint distribution (with rewards)
         self.model= BernoulliNB();
         self.windowsize = 10; # Configurable
+        self.predictions = np.zeros((self.windowsize, 1))
         
     def updatereward(self, reward, Agents):
         super().updatereward(reward)
@@ -154,6 +155,7 @@ class Agent_NaiveBayes(Agent): #TODO. Currently only works with 1 other user.
         if random.random() < pexplore and t > self.windowsize + 2: #exploit stage
             #predict what the other user will do
             others_predict = int(round(self.model.predict(Agents[1-self.index].actions[-self.windowsize-1:-1])[0]));
+            np.insert(self.predictions, others_predict, len(self.predictions))            
             #find the action that maximizes assuming the the other does the predicted value
             avgOfEach = np.zeros(len(BSs))
             for i in range(0, len(BSs)):
