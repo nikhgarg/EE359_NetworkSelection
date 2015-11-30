@@ -79,7 +79,7 @@ def findTrueMixedStrategy(C, Kcoex):
     
     return [mixed0, mixed1];
 
-def findPossibleTrueStrategies(C, Kcoex):
+def findPossibleTrueStrategies():
     pure1 = [[1, 0], [1, 0]]
     pure2 = [[0, 1], [1, 0]]
     pure3 = [[1, 0], [0, 1]]
@@ -87,7 +87,7 @@ def findPossibleTrueStrategies(C, Kcoex):
     return [pure1, pure2, pure3, pure4]
     
 def findBestMixedStrategy(C, Kcoex):
-    strategies = findPossibleTrueStrategies(C, Kcoex)
+    strategies = findPossibleTrueStrategies()
     strategies.append( findTrueMixedStrategy(C, Kcoex))
     utils = np.zeros(5)
     for i in range(0, 5):
@@ -110,11 +110,22 @@ def testfindMixedStrategies():
     print(findBestMixedStrategy(A, K))
     #A = np.matrix([[.1,0], [.1,.1]])
 ################################################
-def calc_correlated_equil(C):
+def calc_correlated_equil(A, K):
+    C = np.copy(A)
+    C[0,0] = K*C[0,0]
+    C[0,1] = (1-K)*C[0,1]
+    C[1,0] = K*C[1,0]
+    C[1,1] = (1-K)*C[1,1]
+    
     minp = max(1/2*C[0,1]/(C[0,0] + 1/2*C[0,1]), 1/2*C[1,1]/(C[1,0] + 1/2*C[1,1]))
     maxp = min(C[0,1]/(1/2*C[0,0] + C[0,1]), C[1,1]/(1/2*C[1,0] + C[1,1]))
     if maxp < minp: #correlated equilibrium not working. Defaulting to their dominant strategies
-        return -1
+        strats = findPossibleTrueStrategies()
+        utils = np.zeros(4)
+        for i in range(0, 4):
+            utils[i] = calculateLogSumUtilitiesFromMixedStrategies(strats[i], K, A)
+        strat = strats[np.argmax(utils)]
+        return False, strat, [calcUtilityFromStrategy(0, strat, K, A), calcUtilityFromStrategy(1, strat, K, A)]
     c1 = C[0,0]
     c2 = C[0,1]
     c3 = C[1,0]
@@ -122,6 +133,7 @@ def calc_correlated_equil(C):
     a = c2*c3 + c1*c4 - 2*c2*c4
     b = c1*c3 - c2*c3 - c1*c4 + c2*c4
     maximing = -a/(2.0*b)
+    Umaximing = C*np.matrix([[maximing], [1-maximing]])
     if maximing < minp or maximing > maxp: #maximizing is out of range, boundry value is appropriate
         minv = np.matrix([[minp], [1-minp]])
         Umin = C*minv
@@ -132,11 +144,11 @@ def calc_correlated_equil(C):
         maxUprod = Umax[0]*Umax[1]
 
         if minUprod > maxUprod:
-            return minp
+            return True, minp, Umin
         else:
-            return maxp
+            return True, maxp, Umax
     else:
-        return maximing
+        return True, maximing, Umaximing
         
     
 def test_calc_correlated():

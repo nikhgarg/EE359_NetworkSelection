@@ -33,11 +33,14 @@ import matplotlib.pyplot
 import pylab
 import time
 from scipy import stats
+import analysis_helper
 
 input_file = 'experiments.csv'
 csv_file = csv.DictReader(open(input_file, 'r'), delimiter=',', quotechar='"')
 
 output_file = 'data.csv'
+
+PLOTNEQ = 1
 
 def getNetworkGeometry(CASE):
     BSs = []
@@ -125,6 +128,12 @@ for configuration in csv_file:
     AgentRewards = []
     AgentActions = []
 
+    if PLOTNEQ:
+        MixedStrategyRewards = np.zeros(variables['NumAgents'])
+        CorrelatedEquilRewards = np.zeros(variables['NumAgents'])
+        MixedStrategyActions = np.zeros(variables['NumAgents'])
+        CorrelatedEquilActions = np.zeros(variables['NumAgents'])
+
     for experiment_num in range(0, NumExperiments):
         if experiment_num % 1000 == 1:
                 print(experiment_num) 
@@ -150,27 +159,59 @@ for configuration in csv_file:
             else:
                 AgentRewards[i] = AgentRewards[i] + np.array(Agents[i].rewards)
                 AgentActions[i] = AgentActions[i] + np.array(Agents[i].actions)
-               
+        if PLOTNEQ:          
+            C = np.zeros((2, 2))
+            for i in [0, 1]:
+                for j in [0, 1]:
+                    C[i,j] = environment.calculatecapacity(Agents[i], BSs[j], 1, variables, dofading=False)
+                
+            bestmixed = analysis_helper.findBestMixedStrategy(C, variables["K_coexistence"])
+            MixedStrategyRewards = MixedStrategyRewards + [analysis_helper.calcUtilityFromStrategy(0, bestmixed, variables["K_coexistence"], C), analysis_helper.calcUtilityFromStrategy(1, bestmixed, variables["K_coexistence"], C)]
+            MixedStrategyActions = MixedStrategyActions + [bestmixed[0][1], bestmixed[1][1]]
+            
+            foundcorre, corstrat, corrrewardsloc = analysis_helper.calc_correlated_equil(C, variables["K_coexistence"])
+            if foundcorre:
+                CorrelatedEquilRewards = CorrelatedEquilRewards + corrrewardsloc
+                CorrelatedEquilActions[0] = CorrelatedEquilActions[0] + 1-corstrat       
+                CorrelatedEquilActions[1] = CorrelatedEquilActions[1] + corstrat            
+            else: #did not find a correlated equilibrium, (ie dominant strategy exists)
+                CorrelatedEquilRewards = CorrelatedEquilRewards + corrrewardsloc
+                CorrelatedEquilActions = CorrelatedEquilActions + [corstrat[0][1], corstrat[1][1]]
+                
+                
     for i in range(0, len(Agents)):
-        AgentRewards[i] = AgentRewards[i]/NumExperiments
-        AgentActions[i] = AgentActions[i]/NumExperiments
+        AgentRewards[i] = AgentRewards[i]/float(NumExperiments)
+        AgentActions[i] = AgentActions[i]/float(NumExperiments)
+        CorrelatedEquilActions[i] = CorrelatedEquilActions[i]/float(NumExperiments)
+        CorrelatedEquilRewards[i] = CorrelatedEquilRewards[i]/float(NumExperiments)
+        MixedStrategyActions[i] = MixedStrategyActions[i]/float(NumExperiments)
+        MixedStrategyRewards[i] = MixedStrategyRewards[i]/float(NumExperiments)
+        print(MixedStrategyActions, CorrelatedEquilActions)
         
-    
-   
     #visualize stuff.
     for i in range(0, len(Agents)):
-        slope, intercept, r_value, p_value, std_err = stats.linregress(range(5, int(variables['T_cutoff'])),AgentRewards[i][5:])
-        matplotlib.pyplot.plot(range(5, int(variables['T_cutoff'])), AgentRewards[i][5:])
-        matplotlib.pyplot.plot(range(5, int(variables['T_cutoff'])), slope*range(5, int(variables['T_cutoff'])) + intercept)
+        #slope, intercept, r_value, p_value, std_err = stats.linregress(range(5, int(variables['T_cutoff'])),AgentRewards[i][5:])
+        matplotlib.pyplot.plot(range(5, int(variables['T_cutoff'])), AgentRewards[i][5:], 'b', label='Actual Reward')
+        #matplotlib.pyplot.plot(range(5, int(variables['T_cutoff'])), slope*range(5, int(variables['T_cutoff'])) + intercept)
         matplotlib.pyplot.xlabel('t')
         matplotlib.pyplot.ylabel('R_{avg}')
+        matplotlib.pyplot.ylim([-.1, 2])
         matplotlib.pyplot.title('Agent' + str(i))
+        if PLOTNEQ:      
+            matplotlib.pyplot.axhline(y=MixedStrategyRewards[i], color = 'r', marker = 'x', label = 'Mixed Strategy Reward') 
+            matplotlib.pyplot.axhline(y=CorrelatedEquilRewards[i], color = 'g', label = 'Correlated Equil. Reward') 
+        matplotlib.pyplot.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         matplotlib.pyplot.show()
     
-        matplotlib.pyplot.plot(range(0, int(variables['T_cutoff'])), AgentActions[i])
+        matplotlib.pyplot.plot(range(0, int(variables['T_cutoff'])), AgentActions[i], 'b', label = 'Actual Action')
         matplotlib.pyplot.xlabel('t')
         matplotlib.pyplot.ylabel('Avg Action')
         matplotlib.pyplot.title('Agent' + str(i))
+        matplotlib.pyplot.ylim([-.1, 1.1])
+        if PLOTNEQ:      
+            matplotlib.pyplot.axhline(y=MixedStrategyActions[i], color = 'r', marker = 'x', label = 'Mixed Strategy') 
+            matplotlib.pyplot.axhline(y=CorrelatedEquilActions[i], color = 'g', label = 'Correlated Equilibrium Action') 
+        matplotlib.pyplot.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         matplotlib.pyplot.show()
 
 

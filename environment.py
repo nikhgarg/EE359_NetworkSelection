@@ -19,7 +19,7 @@ def distance (BS1, BS2):
     loc2 = BS2.location
     return distanceloc(loc1, loc2)
 
-def calculatecapacity(UE, BS, N_connected, variables):
+def calculatecapacity(UE, BS, N_connected, variables, dofading=True):
     B = variables['B']
     No = variables['No']
     Pt = variables['P']
@@ -29,8 +29,9 @@ def calculatecapacity(UE, BS, N_connected, variables):
     Pr = Pt * K * pow(dist, -alpha)
     
     gamma_bar = Pr/B/No
-    gamma = random.expovariate(1./gamma_bar) #for now, assume uncorrelated fading even when UEs on top of each other
-    return B/N_connected * math.log(1 + gamma, 2)
+    if dofading:
+        gamma_bar = random.expovariate(1./gamma_bar) #for now, assume uncorrelated fading even when UEs on top of each other
+    return B/N_connected * math.log(1 + gamma_bar, 2)
     
     
     
