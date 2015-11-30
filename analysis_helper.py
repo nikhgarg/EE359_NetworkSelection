@@ -10,7 +10,7 @@ import numpy as np
 import numpy.random
 import matplotlib.pyplot as plt
 import prettyplotlib as ppl
-
+import math
 
 #def case0values():
 #    calculatecapacity(UE, BS, N_connected, variables)
@@ -102,20 +102,21 @@ def calculateLogSumUtilitiesFromMixedStrategies(strategy, Kcoex, A):
     u0 = calcUtilityFromStrategy(0, strategy, Kcoex, A)
     u1 = calcUtilityFromStrategy(1, strategy, Kcoex, A)
     return np.log2(u0) + np.log2(u1)
-    
+ #   return u0 + u1
+
 def testfindMixedStrategies():
     A = np.matrix([[np.random.rand(), np.random.rand()], [np.random.rand(), np.random.rand()]])
  #   A = np.matrix([[3,1], [4,2]])
     K = .5
-    print(findBestMixedStrategy(A, K))
+#    print(findBestMixedStrategy(A, K))
     #A = np.matrix([[.1,0], [.1,.1]])
 ################################################
 def calc_correlated_equil(A, K):
-    C = np.copy(A)
-    C[0,0] = K*C[0,0]
-    C[0,1] = (1-K)*C[0,1]
-    C[1,0] = K*C[1,0]
-    C[1,1] = (1-K)*C[1,1]
+    C = np.zeros((2, 2))
+    C[0,0] = K*A[0,0]
+    C[0,1] = (1-K)*A[0,1]
+    C[1,0] = (1-K)*A[1,1]
+    C[1,1] = K*A[1,0]
     
     minp = max(1/2*C[0,1]/(C[0,0] + 1/2*C[0,1]), 1/2*C[1,1]/(C[1,0] + 1/2*C[1,1]))
     maxp = min(C[0,1]/(1/2*C[0,0] + C[0,1]), C[1,1]/(1/2*C[1,0] + C[1,1]))
@@ -130,10 +131,14 @@ def calc_correlated_equil(A, K):
     c2 = C[0,1]
     c3 = C[1,0]
     c4 = C[1,1]
+#    print(c1, c2, c3, c4)
     a = c2*c3 + c1*c4 - 2*c2*c4
     b = c1*c3 - c2*c3 - c1*c4 + c2*c4
     maximing = -a/(2.0*b)
+    if math.isnan(maximing):
+        maximing = .5
     Umaximing = C*np.matrix([[maximing], [1-maximing]])
+#    print([Umaximing[0,0], Umaximing[1,0]])
     if maximing < minp or maximing > maxp: #maximizing is out of range, boundry value is appropriate
         minv = np.matrix([[minp], [1-minp]])
         Umin = C*minv
@@ -144,31 +149,38 @@ def calc_correlated_equil(A, K):
         maxUprod = Umax[0]*Umax[1]
 
         if minUprod > maxUprod:
-            return True, minp, Umin
+            return True, minp, [Umin[0,0], Umin[1,0]]
         else:
-            return True, maxp, Umax
+            return True, maxp, [Umax[0,0], Umax[1,0]]
     else:
-        return True, maximing, Umaximing
+        return True, maximing, [Umaximing[0,0], Umaximing[1,0]] #awkward thing to flatten matrix
         
     
 def test_calc_correlated():
-    A = np.matrix([[np.random.rand(), np.random.rand()], [np.random.rand(), np.random.rand()]])
-    #A = np.matrix([[.1,0], [.1,.1]])
-
+    #A = np.matrix([[np.random.rand(), np.random.rand()], [np.random.rand(), np.random.rand()]])
+    A = np.matrix([[1.2,1], [1.2,1]])
+    Kcoex = .5
+    K = Kcoex
+    C = np.zeros((2, 2))
+    C[0,0] = K*A[0,0]
+    C[0,1] = (1-K)*A[0,1]
+    C[1,0] = (1-K)*A[1,1]
+    C[1,1] = K*A[1,0]
     pstar = -1
     maxval = -1
-    minp = max(1/2*A[0,1]/(A[0,0] + 1/2*A[0,1]), 1/2*A[1,1]/(A[1,0] + 1/2*A[1,1]))
-    maxp = min(A[0,1]/(1/2*A[0,0] + A[0,1]), A[1,1]/(1/2*A[1,0] + A[1,1]))
-    for p in np.arange(minp,maxp, .0001):
+    minp = max(1/2*C[0,1]/(C[0,0] + 1/2*C[0,1]), 1/2*C[1,1]/(C[1,0] + 1/2*C[1,1]))
+    maxp = min(C[0,1]/(1/2*C[0,0] + C[0,1]), C[1,1]/(1/2*C[1,0] + C[1,1]))
+    for p in np.arange(minp,maxp, .001):
         pm = np.matrix([[p], [1-p]])
-        U = A*pm
+        U = C*pm
         val = U[0]*U[1]
+        print (p, val)
         if val > maxval:
             maxval= val
             pstar = p
             
-    print(minp, maxp, pstar)
-    print(calc_correlated_equil(A, minp, maxp));
+    print(maxval, minp, maxp, pstar)
+    print(calc_correlated_equil(A, Kcoex));
 
 def cap_simp(d, alpha = 3):
     return np.log(1 + d^(-alpha), 2)
@@ -196,4 +208,4 @@ def Kheatmap():
 #Kheatmap()  
 #test_calc_correlated()
 
-testfindMixedStrategies()
+#testfindMixedStrategies()

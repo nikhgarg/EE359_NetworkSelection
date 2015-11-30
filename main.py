@@ -177,8 +177,7 @@ for configuration in csv_file:
             else: #did not find a correlated equilibrium, (ie dominant strategy exists)
                 CorrelatedEquilRewards = CorrelatedEquilRewards + corrrewardsloc
                 CorrelatedEquilActions = CorrelatedEquilActions + [corstrat[0][1], corstrat[1][1]]
-                
-                
+ #           print(CorrelatedEquilRewards)
     for i in range(0, len(Agents)):
         AgentRewards[i] = AgentRewards[i]/float(NumExperiments)
         AgentActions[i] = AgentActions[i]/float(NumExperiments)
@@ -186,8 +185,9 @@ for configuration in csv_file:
         CorrelatedEquilRewards[i] = CorrelatedEquilRewards[i]/float(NumExperiments)
         MixedStrategyActions[i] = MixedStrategyActions[i]/float(NumExperiments)
         MixedStrategyRewards[i] = MixedStrategyRewards[i]/float(NumExperiments)
-        print(MixedStrategyActions, CorrelatedEquilActions)
-        
+    print(MixedStrategyActions, CorrelatedEquilActions)
+    print(MixedStrategyRewards, CorrelatedEquilRewards)
+
     #visualize stuff.
     for i in range(0, len(Agents)):
         #slope, intercept, r_value, p_value, std_err = stats.linregress(range(5, int(variables['T_cutoff'])),AgentRewards[i][5:])
@@ -202,17 +202,20 @@ for configuration in csv_file:
             matplotlib.pyplot.axhline(y=CorrelatedEquilRewards[i], color = 'g', label = 'Correlated Equil. Reward') 
         matplotlib.pyplot.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         matplotlib.pyplot.show()
-    
+        matplotlib.pyplot.figure()
+#    
         matplotlib.pyplot.plot(range(0, int(variables['T_cutoff'])), AgentActions[i], 'b', label = 'Actual Action')
         matplotlib.pyplot.xlabel('t')
         matplotlib.pyplot.ylabel('Avg Action')
         matplotlib.pyplot.title('Agent' + str(i))
         matplotlib.pyplot.ylim([-.1, 1.1])
+        
         if PLOTNEQ:      
             matplotlib.pyplot.axhline(y=MixedStrategyActions[i], color = 'r', marker = 'x', label = 'Mixed Strategy') 
             matplotlib.pyplot.axhline(y=CorrelatedEquilActions[i], color = 'g', label = 'Correlated Equilibrium Action') 
         matplotlib.pyplot.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         matplotlib.pyplot.show()
+        matplotlib.pyplot.figure()
 
 
     #output results:
