@@ -92,6 +92,7 @@ def findBestMixedStrategy(C, Kcoex):
     utils = np.zeros(5)
     for i in range(0, 5):
         utils[i] = calculateLogSumUtilitiesFromMixedStrategies(strategies[i], Kcoex, C)
+#    print(strategies, utils)
     return strategies[np.argmax(utils)]        
     
 def calcUtilityFromStrategy(userind, strategy, Kcoex, A):
@@ -117,10 +118,10 @@ def calc_correlated_equil(A, K):
     C[0,1] = (1-K)*A[0,1]
     C[1,0] = (1-K)*A[1,1]
     C[1,1] = K*A[1,0]
-    
+    epsilon = .01 #fix rounding errors...
     minp = max(1/2*C[0,1]/(C[0,0] + 1/2*C[0,1]), 1/2*C[1,1]/(C[1,0] + 1/2*C[1,1]))
     maxp = min(C[0,1]/(1/2*C[0,0] + C[0,1]), C[1,1]/(1/2*C[1,0] + C[1,1]))
-    if maxp < minp: #correlated equilibrium not working. Defaulting to their dominant strategies
+    if maxp + epsilon < minp - epsilon: #correlated equilibrium not working. Defaulting to their dominant strategies
         strats = findPossibleTrueStrategies()
         utils = np.zeros(4)
         for i in range(0, 4):
@@ -139,7 +140,7 @@ def calc_correlated_equil(A, K):
         maximing = .5
     Umaximing = C*np.matrix([[maximing], [1-maximing]])
 #    print([Umaximing[0,0], Umaximing[1,0]])
-    if maximing < minp or maximing > maxp: #maximizing is out of range, boundry value is appropriate
+    if maximing < minp - epsilon or maximing > maxp + epsilon: #maximizing is out of range, boundry value is appropriate
         minv = np.matrix([[minp], [1-minp]])
         Umin = C*minv
         minUprod = Umin[0]*Umin[1]
@@ -158,8 +159,8 @@ def calc_correlated_equil(A, K):
     
 def test_calc_correlated():
     #A = np.matrix([[np.random.rand(), np.random.rand()], [np.random.rand(), np.random.rand()]])
-    A = np.matrix([[1.2,1], [1.2,1]])
-    Kcoex = .5
+    A = np.matrix([[1,1], [1, 1]])
+    Kcoex = .666666666667
     K = Kcoex
     C = np.zeros((2, 2))
     C[0,0] = K*A[0,0]
@@ -167,20 +168,21 @@ def test_calc_correlated():
     C[1,0] = (1-K)*A[1,1]
     C[1,1] = K*A[1,0]
     pstar = -1
-    maxval = -1
+    maxval = np.matrix(1)
     minp = max(1/2*C[0,1]/(C[0,0] + 1/2*C[0,1]), 1/2*C[1,1]/(C[1,0] + 1/2*C[1,1]))
     maxp = min(C[0,1]/(1/2*C[0,0] + C[0,1]), C[1,1]/(1/2*C[1,0] + C[1,1]))
     for p in np.arange(minp,maxp, .001):
         pm = np.matrix([[p], [1-p]])
         U = C*pm
         val = U[0]*U[1]
-        print (p, val)
+ #       print (p, val)
         if val > maxval:
             maxval= val
             pstar = p
             
-    print(maxval, minp, maxp, pstar)
-    print(calc_correlated_equil(A, Kcoex));
+    print(maxval[0,0], pstar, minp, maxp)
+    found, maxp, u = calc_correlated_equil(A, Kcoex)
+    print(u[0]*u[1], maxp, found);
 
 def cap_simp(d, alpha = 3):
     return np.log(1 + d^(-alpha), 2)

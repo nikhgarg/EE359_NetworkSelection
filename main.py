@@ -52,7 +52,7 @@ def getNetworkGeometry(CASE):
         UElocs = [(0,0), (0,0)]
     return [BSs, UElocs]
     
-AgentNameDictionary = {'Agent' : Agent, 'BasicLearning' : Agent_BasicLearning, 'BasicProportionalLearning': Agent_BasicProportionalLearning, 'StubbornLTE' : Agent_StubbornLTE, 'StubbornWiFi' : Agent_StubbornWiFi, 'FictitiousPlay' : Agent_FictitiousPlay, 'NaiveBayes': Agent_NaiveBayes}
+AgentNameDictionary = {'Agent' : Agent, 'BasicLearning' : Agent_BasicLearning, 'BasicProportionalLearning': Agent_BasicProportionalLearning, 'StubbornLTE' : Agent_StubbornLTE, 'StubbornWiFi' : Agent_StubbornWiFi, 'FictitiousPlay' : Agent_FictitiousPlay, 'NaiveBayes': Agent_NaiveBayes, 'FictitiousProportionalPlay' : Agent_FictitiousProportionalPlay}
 
 def createAgents(variables):
     Agents= []

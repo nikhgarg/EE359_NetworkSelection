@@ -105,7 +105,7 @@ class Agent_FictitiousPlay(Agent):
         self.distribution[myact, otheract] = self.distribution[myact, otheract] + 1
         self.distribution_rewards[myact, otheract] = self.distribution_rewards[myact, otheract] + reward
 
-    def act(self, BSs, variables,Agents, t): ## TODO write this code
+    def act(self, BSs, variables,Agents, t):
         pexplore = 1-variables['p_explore'];
         if random.random() < pexplore and t > 10: #exploit stage
             #calculate expected gain for each of your actions
@@ -123,6 +123,51 @@ class Agent_FictitiousPlay(Agent):
             
             #choose action that maximizes expected
             action = avgOfEach.argmax()
+        else: #explore stage
+            action = random.randint(0, len(BSs)-1) 
+        self.actions.append(action)
+        return action
+        
+class Agent_FictitiousProportionalPlay(Agent):
+    def __init__(self, loc, actspace, index, name = ''):
+        super().__init__(loc, actspace, index)
+        self.distribution = np.zeros((len(actspace), len(actspace))) #joint distribution (with probabilities)
+        self.distribution_rewards = np.zeros((len(actspace), len(actspace))) #joint distribution (with rewards)
+
+    def updatereward(self, reward, Agents):
+        super().updatereward(reward)
+        # update join probabilities (list of who did what)
+        myact = self.actions[-1]
+        otheract = Agents[1-self.index].actions[-1]
+        self.distribution[myact, otheract] = self.distribution[myact, otheract] + 1
+        self.distribution_rewards[myact, otheract] = self.distribution_rewards[myact, otheract] + reward
+
+    def act(self, BSs, variables,Agents, t):
+        pexplore = 1-variables['p_explore'];
+        if random.random() < pexplore and t > 10: #exploit stage
+            #calculate expected gain for each of your actions
+                    # (each row is an action you can take, column is what they can take)
+                    #Find probability of each of their actions.
+            other_probabilities = [sum(self.distribution[:,i]) for i in range(0, len(BSs))]
+            #For each of your actions, find avg from each of their actions times the probability of that action
+            avgOfEach = np.zeros(len(BSs))
+            for i in range(0, len(BSs)):
+                summ = 0;
+                for j in range(0, len(BSs)):
+                    if self.distribution[i,j] > 0:
+                        summ = summ + (self.distribution_rewards[i,j]/self.distribution[i,j])*other_probabilities[j]
+                avgOfEach[i] = summ
+            sumavg = sum(avgOfEach)
+            avgOfEach = [i/sumavg for i in avgOfEach]
+            cdf = avgOfEach
+            for i in range(1, len(cdf)):
+                cdf[i] = cdf[i-1] + avgOfEach[i];
+            val= random.random();
+            action = 0;
+            for i in range(0, len(cdf)):
+                if cdf[i] > val:
+                    action = i;
+                    break;            
         else: #explore stage
             action = random.randint(0, len(BSs)-1) 
         self.actions.append(action)
