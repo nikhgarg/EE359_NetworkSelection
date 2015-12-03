@@ -14,7 +14,8 @@ has a function that takes in past actions/rewards, time, some variables --> an a
 import random
 import numpy as np
 from sklearn.naive_bayes import BernoulliNB
-
+import environment
+import math
 class Agent:
     def __init__(self, loc, actspace, index, name = ''):
         self.name = name
@@ -210,5 +211,47 @@ class Agent_NaiveBayes(Agent): #TODO. Currently only works with 1 other user.
             action = avgOfEach.argmax()
         else: #explore stage
             action = random.randint(0, len(BSs)-1) 
+        self.actions.append(action)
+        return action
+        
+class Agent_StubbornThenLearning(Agent):
+    #below a T_patience, it chooses the BS that would maximize K*C without other users
+        #can use BSs -- have location info, can also use Kcoex
+    #Above T_patience, it does basic learning does
+    def act(self, BSs, variables,Agents=None, t = -1):
+        Tpatience = math.floor(variables['T_cutoff']/2)
+        if t > Tpatience:     #Above T_patience, it does basic learning does
+            p = 1-variables['p_explore'];
+            if random.random() < p:
+                avgOfEach = np.zeros(len(BSs))
+                for i in range(0,len(BSs)):
+                    indices = [ind for ind, j in enumerate(self.actions) if j == i]
+                    avgOfEach[i] = np.Inf if len(indices)==0 else sum([self.rewards[j] for j in indices])/(float(len(indices)))
+                action = np.argmax(avgOfEach)
+            else:
+                action = random.randint(0, len(BSs)-1)
+        else:     #below a T_patience, it chooses the BS that would maximize K*C without other users
+            #calculate C to each BS
+            caps = [environment.calculatecapacity(self, BSs[0], 1, variables, doFading=False), environment.calculatecapacity(self, BSs[1], 1, variables, doFading=False)]
+            #multiply by K, 1-K 
+            caps[0] = caps[0] * variables['K_coexistence']
+            caps[1] = caps[1] * 1-(variables['K_coexistence'])
+            #choose maximising
+            action = np.argmax(caps)
+            
+        self.actions.append(action)
+        return action
+    
+class Agent_Stubborn(Agent):
+    #chooses the BS that would maximize K*C without other users
+    def act(self, BSs, variables,Agents=None, t = -1):
+        #calculate C to each BS
+        caps = [environment.calculatecapacity(self, BSs[0], 1, variables, doFading=False), environment.calculatecapacity(self, BSs[1], 1, variables, doFading=False)]
+        #multiply by K, 1-K 
+        caps[0] = caps[0] * variables['K_coexistence']
+        caps[1] = caps[1] * 1-(variables['K_coexistence'])
+        #choose maximising
+        action = np.argmax(caps)
+            
         self.actions.append(action)
         return action

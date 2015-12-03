@@ -34,13 +34,14 @@ import pylab
 import time
 from scipy import stats
 import analysis_helper
-
+import math
 input_file = 'experiments.csv'
 csv_file = csv.DictReader(open(input_file, 'r'), delimiter=',', quotechar='"')
 
 output_file = 'data.csv'
 
 PLOTNEQ = 1
+PLOTLOGSUMOVERTIME = 1
 
 def getNetworkGeometry(CASE):
     BSs = []
@@ -52,7 +53,7 @@ def getNetworkGeometry(CASE):
         UElocs = [(0,0), (0,0)]
     return [BSs, UElocs]
     
-AgentNameDictionary = {'Agent' : Agent, 'BasicLearning' : Agent_BasicLearning, 'BasicProportionalLearning': Agent_BasicProportionalLearning, 'StubbornLTE' : Agent_StubbornLTE, 'StubbornWiFi' : Agent_StubbornWiFi, 'FictitiousPlay' : Agent_FictitiousPlay, 'NaiveBayes': Agent_NaiveBayes, 'FictitiousProportionalPlay' : Agent_FictitiousProportionalPlay}
+AgentNameDictionary = {'Agent' : Agent, 'BasicLearning' : Agent_BasicLearning, 'BasicProportionalLearning': Agent_BasicProportionalLearning, 'StubbornLTE' : Agent_StubbornLTE, 'StubbornWiFi' : Agent_StubbornWiFi, 'FictitiousPlay' : Agent_FictitiousPlay, 'NaiveBayes': Agent_NaiveBayes, 'FictitiousProportionalPlay' : Agent_FictitiousProportionalPlay, 'StubbornThenLearning':Agent_StubbornThenLearning, 'Stubborn': Agent_Stubborn}
 
 def createAgents(variables):
     Agents= []
@@ -107,9 +108,10 @@ def determineRewards(BSs, Agents, actions, variables, t=-1, t_cutoff=-1):
     for i in range(0, len(Agents)):
         if x[actions[i]]  == 0: #BS it is connected to is not transmitting
             continue
-        rewards[i] = environment.calculatecapacity(Agents[i], BSs[actions[i]], Ntx[actions[i]], variables)   
+        rewards[i] = environment.calculatecapacity(Agents[i], BSs[actions[i]], Ntx[actions[i]], variables, doFading=False)   
     return rewards
 
+epsilon= .0001
 for configuration in csv_file:
     variables = configuration.copy();
     if variables['VALID'] == '0':
@@ -164,7 +166,7 @@ for configuration in csv_file:
         C = np.zeros((2, 2))
         for i in [0, 1]:
             for j in [0, 1]:
-                C[i,j] = environment.calculatecapacity(Agents[i], BSs[j], 1, variables, dofading=False)
+                C[i,j] = environment.calculatecapacity(Agents[i], BSs[j], 1, variables, doFading=False)
             
         for strat in analysis_helper.findPossibleStrategies(C, variables["K_coexistence"]):
              AllMixedStrategyRewards.append([analysis_helper.calcUtilityFromStrategy(0, strat, variables["K_coexistence"], C), analysis_helper.calcUtilityFromStrategy(1, strat, variables["K_coexistence"], C)])
@@ -197,21 +199,47 @@ for configuration in csv_file:
     print(AllMixedStrategyRewards, CorrelatedEquilRewards)
 
     #visualize stuff.
+    if PLOTLOGSUMOVERTIME:
+        AgentRewardsLogsum = [math.log(epsilon +np.mean(AgentRewards[0][t]), 2) + math.log(epsilon + np.mean(AgentRewards[1][t]), 2) for t in range(0, int(variables['T_cutoff']))]        
+        
+        matplotlib.pyplot.plot(range(0, int(variables['T_cutoff'])), AgentRewardsLogsum, 'b', label='Actual Reward')
+        matplotlib.pyplot.xlabel('t')
+        matplotlib.pyplot.ylabel('Logsum Rate')
+        maxreward = AllMixedStrategyRewards[0][i]
+        matplotlib.pyplot.title('Logsum Rate over Time')
+        AllMixedStrategyRewards_Logsum = []
+        for ii in range(0, len(AllMixedStrategyRewards)):
+            AllMixedStrategyRewards_Logsum.append(math.log(epsilon +np.mean(AllMixedStrategyRewards[ii][0]), 2) + math.log(epsilon + np.mean(AllMixedStrategyRewards[ii][1]), 2))
+        if PLOTNEQ:      
+            matplotlib.pyplot.axhline(y=AllMixedStrategyRewards_Logsum[0], color = 'r', marker = 'x', label = 'Mixed Strategy Rewards') 
+            for ii in range(1, len(AllMixedStrategyRewards_Logsum)):
+                matplotlib.pyplot.axhline(y=AllMixedStrategyRewards_Logsum[ii], color = 'r', marker = 'x') 
+                maxreward = max(maxreward, AllMixedStrategyRewards_Logsum[ii])
+            if foundcorre:
+                CorrelatedEquilRewards_logsum = math.log(epsilon +np.mean(CorrelatedEquilRewards[0]), 2) + math.log(epsilon + np.mean(CorrelatedEquilRewards[1]), 2)
+                matplotlib.pyplot.axhline(y=CorrelatedEquilRewards_logsum, color = 'g', label = 'Correlated Equil. Reward') 
+                maxreward = max(CorrelatedEquilRewards_logsum, maxreward)
+        matplotlib.pyplot.ylim([-5, -.5 ])
+        matplotlib.pyplot.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        matplotlib.pyplot.show()
+        matplotlib.pyplot.figure()
+
+
     for i in range(0, len(Agents)):
         #slope, intercept, r_value, p_value, std_err = stats.linregress(range(5, int(variables['T_cutoff'])),AgentRewards[i][5:])
-        matplotlib.pyplot.plot(range(5, int(variables['T_cutoff'])), AgentRewards[i][5:], 'b', label='Actual Reward')
+        matplotlib.pyplot.plot(range(0, int(variables['T_cutoff'])), AgentRewards[i], 'b', label='Actual Reward')
         #matplotlib.pyplot.plot(range(5, int(variables['T_cutoff'])), slope*range(5, int(variables['T_cutoff'])) + intercept)
         matplotlib.pyplot.xlabel('t')
         matplotlib.pyplot.ylabel('R_{avg}')
         maxreward = AllMixedStrategyRewards[0][i]
         matplotlib.pyplot.title('Agent' + str(i))
         if PLOTNEQ:      
-            matplotlib.pyplot.axhline(y=AllMixedStrategyRewards[0][i], color = 'r', marker = 'x', label = 'Mixed Strategy Rewards') 
+            matplotlib.pyplot.axhline(y=AllMixedStrategyRewards[0][i], color = 'r', marker = 'x', linestyle = '--', label = 'Mixed Strategy Rewards') 
             for ii in range(1, len(AllMixedStrategyRewards)):
-                matplotlib.pyplot.axhline(y=AllMixedStrategyRewards[ii][i], color = 'r', marker = 'x') 
+                matplotlib.pyplot.axhline(y=AllMixedStrategyRewards[ii][i], color = 'r', linestyle = '--', marker = 'x') 
                 maxreward = max(maxreward, AllMixedStrategyRewards[ii][i])
             if foundcorre:
-                matplotlib.pyplot.axhline(y=CorrelatedEquilRewards[i], color = 'g', label = 'Correlated Equil. Reward') 
+                matplotlib.pyplot.axhline(y=CorrelatedEquilRewards[i], color = 'g', linestyle = '--', label = 'Correlated Equil. Reward') 
                 maxreward = max(CorrelatedEquilRewards[i], maxreward)
         matplotlib.pyplot.ylim([-.1, maxreward + .3 ])
         matplotlib.pyplot.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)

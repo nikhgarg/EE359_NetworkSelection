@@ -35,7 +35,7 @@ import time
 from scipy import stats
 import analysis_helper
 import math
-input_file = 'experiments_k.csv'
+input_file = 'experiments_k3.csv'
 csv_file = csv.DictReader(open(input_file, 'r'), delimiter=',', quotechar='"')
 configs = []
 
@@ -57,7 +57,7 @@ def getNetworkGeometry(CASE):
         UElocs = [(0,0), (0,0)]
     return [BSs, UElocs]
     
-AgentNameDictionary = {'Agent' : Agent, 'BasicLearning' : Agent_BasicLearning, 'BasicProportionalLearning': Agent_BasicProportionalLearning, 'StubbornLTE' : Agent_StubbornLTE, 'StubbornWiFi' : Agent_StubbornWiFi, 'FictitiousPlay' : Agent_FictitiousPlay, 'NaiveBayes': Agent_NaiveBayes, 'FictitiousProportionalPlay' : Agent_FictitiousProportionalPlay}
+AgentNameDictionary = {'Agent' : Agent, 'BasicLearning' : Agent_BasicLearning, 'BasicProportionalLearning': Agent_BasicProportionalLearning, 'StubbornLTE' : Agent_StubbornLTE, 'StubbornWiFi' : Agent_StubbornWiFi, 'FictitiousPlay' : Agent_FictitiousPlay, 'NaiveBayes': Agent_NaiveBayes, 'FictitiousProportionalPlay' : Agent_FictitiousProportionalPlay, 'StubbornThenLearning':Agent_StubbornThenLearning, 'Stubborn': Agent_Stubborn}
 
 def createAgents(variables):
     Agents= []
@@ -215,6 +215,7 @@ for Kcoex in Ks:
                 CorrelatedEquilRewards_constrained = corrrewardsloc    
                 logsumaverageRewards_CorrelatedConstrained[index] = math.log(epsilon +CorrelatedEquilRewards_constrained[0], 2) + math.log(epsilon + CorrelatedEquilRewards[1], 2)
 
+print(output_file)
 matplotlib.pyplot.plot(Ks, logsumaverageRewards_Correlated, label = 'Central Planner')
 matplotlib.pyplot.plot(Ks, logsumaverageRewards_MixedMax, label = 'Best Pure Strategy')
 matplotlib.pyplot.plot(Ks, logsumaverageRewards_CorrelatedConstrained, label = 'Constrained Central Planner')
