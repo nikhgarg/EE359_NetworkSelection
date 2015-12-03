@@ -43,7 +43,7 @@ for configuration in csv_file:
     configs.append(configuration)
 
 
-output_file = 'data_k.csv'
+output_file = 'data_k3.csv'
 
 PLOTNEQ = 1
 
@@ -112,7 +112,7 @@ def determineRewards(BSs, Agents, actions, variables, t=-1, t_cutoff=-1):
     for i in range(0, len(Agents)):
         if x[actions[i]]  == 0: #BS it is connected to is not transmitting
             continue
-        rewards[i] = environment.calculatecapacity(Agents[i], BSs[actions[i]], Ntx[actions[i]], variables)   
+        rewards[i] = environment.calculatecapacity(Agents[i], BSs[actions[i]], Ntx[actions[i]], variables, doFading = False)   
     return rewards
 
 
@@ -137,11 +137,11 @@ for Kcoex in Ks:
     for configuration in configs:
         configindex = configindex + 1
         print(index, configindex)
+        variables = configuration.copy();
         if index is 0:
             logsumaverageRewards.append(np.zeros(len(Ks)) + 2*math.log(epsilon, 2))
             ConfigurationNames.append(variables['ExperimentName'])
 
-        variables = configuration.copy();
         if variables['VALID'] == '0':
             continue
         categoricalvariables = ['ExperimentName', 'Agent1Type', 'Agent0Type', 'AgentLocs']
@@ -186,7 +186,7 @@ for Kcoex in Ks:
             AgentRewards[i] = AgentRewards[i]/float(NumExperiments)
             AgentActions[i] = AgentActions[i]/float(NumExperiments)
             
-        logsumaverageRewards[configindex][index] = math.log(epsilon +np.mean(AgentRewards[0][-10:-1]), 2) + math.log(epsilon + np.mean(AgentRewards[1][-10:-1]), 2)
+        logsumaverageRewards[configindex][index] = math.log(epsilon +np.mean(AgentRewards[0][-100:-1]), 2) + math.log(epsilon + np.mean(AgentRewards[1][-100:-1]), 2)
         if configindex is 0: 
             foundcorre = False
             AllMixedStrategyRewards = []
@@ -196,7 +196,7 @@ for Kcoex in Ks:
             C = np.zeros((2, 2))
             for i in [0, 1]:
                 for j in [0, 1]:
-                    C[i,j] = environment.calculatecapacity(Agents[i], BSs[j], 1, variables, dofading=False)
+                    C[i,j] = environment.calculatecapacity(Agents[i], BSs[j], 1, variables, doFading=False)
                 
             stratsmixed = analysis_helper.findALLPossibleStrategies(C, variables["K_coexistence"])
             for j in range(0, len(stratsmixed)):
@@ -223,8 +223,8 @@ for jj in range(0, len(ConfigurationNames)):
     matplotlib.pyplot.plot(Ks, logsumaverageRewards[jj], marker = 'x', label = 'Experimental: ' + ConfigurationNames[jj])
 matplotlib.pyplot.xlabel('K_coexistence')
 matplotlib.pyplot.ylabel('logsum rate')
-frame1 = matplotlib.pyplot.gca()
-frame1.axes.get_yaxis().set_ticks([])
+#frame1 = matplotlib.pyplot.gca()
+#frame1.axes.get_yaxis().set_ticks([])
 matplotlib.pyplot.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-matplotlib.pyplot.ylim([-4, -1.5])
+matplotlib.pyplot.ylim([-5, -.5])
 matplotlib.pyplot.show()

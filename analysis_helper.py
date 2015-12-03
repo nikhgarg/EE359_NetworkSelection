@@ -150,6 +150,10 @@ def calc_correlated_equil_without_constraint(A, K):
     C[0,1] = (1-K)*A[0,1]
     C[1,0] = (1-K)*A[1,1]
     C[1,1] = K*A[1,0]
+    
+    retp = 0
+    retv = 0    
+    
     epsilon = .01 #fix rounding errors...
     minp = max(1/2*C[0,1]/(C[0,0] + 1/2*C[0,1]), 1/2*C[1,0]/(C[1,1] + 1/2*C[1,0]))
     maxp = min(C[0,1]/(1/2*C[0,0] + C[0,1]), C[1,0]/(1/2*C[1,1] + C[1,0]))
@@ -182,11 +186,20 @@ def calc_correlated_equil_without_constraint(A, K):
         maxUprod = Umax[0]*Umax[1]
 
         if minUprod > maxUprod:
-            return True, minp, [Umin[0,0], Umin[1,0]]
+            retp =  minp
+            retv = [Umin[0,0], Umin[1,0]]
         else:
-            return True, maxp, [Umax[0,0], Umax[1,0]]
+            retp = maxp
+            retv = [Umax[0,0], Umax[1,0]]
     else:
-        return True, maximing, [Umaximing[0,0], Umaximing[1,0]] #awkward thing to flatten matrix
+        retp = maximing
+        retv = [Umaximing[0,0], Umaximing[1,0]] #awkward thing to flatten matrix
+        
+    corre, corp, corv = calc_correlated_equil(A, K)
+    if corre and retv[0]*retv[1] < corv[0]*corv[1]:
+        return corre, corp, corv
+    else:
+        return True, retp, retv
 
 def calc_correlated_equil(A, K):
     C = np.zeros((2, 2))
@@ -287,3 +300,4 @@ def Kheatmap():
 #test_calc_correlated()
 
 #testfindMixedStrategies()
+#calculateLogSumUtilitiesFromMixedStrategies([[1, 0], [1, 0]], )
