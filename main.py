@@ -127,9 +127,6 @@ for configuration in csv_file:
 
     AgentRewards = []
     AgentActions = []
-    [Agents, BSs] = createAgents(variables) #copied here as well to calc mixed strategies when constant location
-
-
     for experiment_num in range(0, NumExperiments):
         if experiment_num % 1000 == 1:
                 print(experiment_num) 

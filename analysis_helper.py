@@ -99,6 +99,17 @@ def findPossiblePureStrategies(A, Kcoex):
             actualequilibria.append(strat)
     return actualequilibria
         
+def findALLPossibleStrategies(A, Kcoex): #including pure strategies that are obviously terrible
+    pure1 = [[1, 0], [1, 0]]
+    pure2 = [[0, 1], [1, 0]]
+    pure3 = [[1, 0], [0, 1]]
+    pure4 = [[0, 1], [0, 1]]
+    pures = [pure1, pure2, pure3, pure4] 
+    strategies = pures
+    mixedstrat = findTrueMixedStrategy(A, Kcoex)
+    if mixedstrat is not None:
+        strategies.append( mixedstrat)
+    return strategies
     
 def findPossibleStrategies(A, Kcoex):
     strategies = findPossiblePureStrategies(A, Kcoex)
@@ -133,6 +144,50 @@ def testfindMixedStrategies():
 #    print(findBestMixedStrategy(A, K))
     #A = np.matrix([[.1,0], [.1,.1]])
 ################################################
+def calc_correlated_equil_without_constraint(A, K):
+    C = np.zeros((2, 2))
+    C[0,0] = K*A[0,0]
+    C[0,1] = (1-K)*A[0,1]
+    C[1,0] = (1-K)*A[1,1]
+    C[1,1] = K*A[1,0]
+    epsilon = .01 #fix rounding errors...
+    minp = max(1/2*C[0,1]/(C[0,0] + 1/2*C[0,1]), 1/2*C[1,0]/(C[1,1] + 1/2*C[1,0]))
+    maxp = min(C[0,1]/(1/2*C[0,0] + C[0,1]), C[1,0]/(1/2*C[1,1] + C[1,0]))
+    if maxp + epsilon < minp - epsilon: #correlated equilibrium not working. Defaulting to their dominant strategies
+        return False, None, None#, strat, [calcUtilityFromStrategy(0, strat, K, A), calcUtilityFromStrategy(1, strat, K, A)]
+        strats = findPossibleTrueStrategies()
+        utils = np.zeros(4)
+        for i in range(0, 4):
+            utils[i] = calculateLogSumUtilitiesFromMixedStrategies(strats[i], K, A)
+        strat = strats[np.argmax(utils)]
+    c1 = C[0,0]
+    c2 = C[0,1]
+    c3 = C[1,0]
+    c4 = C[1,1]
+#    print(c1, c2, c3, c4)
+    a = c2*c3 + c1*c4 - 2*c2*c4
+    b = c1*c3 - c2*c3 - c1*c4 + c2*c4
+    maximing = -a/(2.0*b)
+    if math.isnan(maximing):
+        maximing = .5
+    Umaximing = C*np.matrix([[maximing], [1-maximing]])
+#    print([Umaximing[0,0], Umaximing[1,0]])
+    if maximing < 0 or maximing > 1: #maximizing is out of range, boundry value is appropriate
+        minv = np.matrix([[1], [0]])
+        Umin = C*minv
+        minUprod = Umin[0]*Umin[1]
+        
+        maxv = np.matrix([[0], [1]])
+        Umax = C*maxv
+        maxUprod = Umax[0]*Umax[1]
+
+        if minUprod > maxUprod:
+            return True, minp, [Umin[0,0], Umin[1,0]]
+        else:
+            return True, maxp, [Umax[0,0], Umax[1,0]]
+    else:
+        return True, maximing, [Umaximing[0,0], Umaximing[1,0]] #awkward thing to flatten matrix
+
 def calc_correlated_equil(A, K):
     C = np.zeros((2, 2))
     C[0,0] = K*A[0,0]
