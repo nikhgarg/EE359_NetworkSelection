@@ -34,13 +34,13 @@ class Agent:
     
 class Agent_StubbornLTE(Agent):
     def act(self, BSs, variables,Agents=None, t = -1):
-        action = 0 #TODO change when go to more complex networks     
+        action = 0  
         self.actions.append(action)
         return action
 
 class Agent_StubbornWiFi(Agent):
     def act(self, BSs, variables, Agents=None, t = -1):
-        action = 1 #TODO change when go to more complex networks     
+        action = 1 
         self.actions.append(action)
         return action
 

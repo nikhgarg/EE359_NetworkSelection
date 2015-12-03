@@ -127,12 +127,8 @@ for configuration in csv_file:
 
     AgentRewards = []
     AgentActions = []
+    [Agents, BSs] = createAgents(variables) #copied here as well to calc mixed strategies when constant location
 
-    if PLOTNEQ:
-        MixedStrategyRewards = np.zeros(variables['NumAgents'])
-        CorrelatedEquilRewards = np.zeros(variables['NumAgents'])
-        MixedStrategyActions = np.zeros(variables['NumAgents'])
-        CorrelatedEquilActions = np.zeros(variables['NumAgents'])
 
     for experiment_num in range(0, NumExperiments):
         if experiment_num % 1000 == 1:
@@ -159,34 +155,47 @@ for configuration in csv_file:
             else:
                 AgentRewards[i] = AgentRewards[i] + np.array(Agents[i].rewards)
                 AgentActions[i] = AgentActions[i] + np.array(Agents[i].actions)
-        if PLOTNEQ:          
-            C = np.zeros((2, 2))
-            for i in [0, 1]:
-                for j in [0, 1]:
-                    C[i,j] = environment.calculatecapacity(Agents[i], BSs[j], 1, variables, dofading=False)
-                
-            bestmixed = analysis_helper.findBestMixedStrategy(C, variables["K_coexistence"])
-            MixedStrategyRewards = MixedStrategyRewards + [analysis_helper.calcUtilityFromStrategy(0, bestmixed, variables["K_coexistence"], C), analysis_helper.calcUtilityFromStrategy(1, bestmixed, variables["K_coexistence"], C)]
-            MixedStrategyActions = MixedStrategyActions + [bestmixed[0][1], bestmixed[1][1]]
+    foundcorre     = False
+    if PLOTNEQ:          
+        AllMixedStrategyRewards = []
+        AllMixedStrategyActions = []
+
+#        MixedStrategyRewards = np.zeros(variables['NumAgents'])
+        CorrelatedEquilRewards = np.zeros(variables['NumAgents'])
+#        MixedStrategyActions = np.zeros(variables['NumAgents'])
+        CorrelatedEquilActions = np.zeros(variables['NumAgents'])
+        C = np.zeros((2, 2))
+        for i in [0, 1]:
+            for j in [0, 1]:
+                C[i,j] = environment.calculatecapacity(Agents[i], BSs[j], 1, variables, dofading=False)
             
-            foundcorre, corstrat, corrrewardsloc = analysis_helper.calc_correlated_equil(C, variables["K_coexistence"])
-            if foundcorre:
-                CorrelatedEquilRewards = CorrelatedEquilRewards + corrrewardsloc
-                CorrelatedEquilActions[0] = CorrelatedEquilActions[0] + 1-corstrat       
-                CorrelatedEquilActions[1] = CorrelatedEquilActions[1] + corstrat            
-            else: #did not find a correlated equilibrium, (ie dominant strategy exists)
-                CorrelatedEquilRewards = CorrelatedEquilRewards + corrrewardsloc
-                CorrelatedEquilActions = CorrelatedEquilActions + [corstrat[0][1], corstrat[1][1]]
+        for strat in analysis_helper.findPossibleStrategies(C, variables["K_coexistence"]):
+             AllMixedStrategyRewards.append([analysis_helper.calcUtilityFromStrategy(0, strat, variables["K_coexistence"], C), analysis_helper.calcUtilityFromStrategy(1, strat, variables["K_coexistence"], C)])
+             AllMixedStrategyActions.append([strat[0][1], strat[1][1]])
+            
+ #       bestmixed = analysis_helper.findBestMixedStrategy(C, variables["K_coexistence"])
+ #       MixedStrategyRewards = MixedStrategyRewards + [analysis_helper.calcUtilityFromStrategy(0, bestmixed, variables["K_coexistence"], C), analysis_helper.calcUtilityFromStrategy(1, bestmixed, variables["K_coexistence"], C)]
+ #       MixedStrategyActions = MixedStrategyActions + [bestmixed[0][1], bestmixed[1][1]]
+        
+        foundcorre, corstrat, corrrewardsloc = analysis_helper.calc_correlated_equil(C, variables["K_coexistence"])
+ #       print(foundcorre, corstrat, corrrewardsloc)
+        if foundcorre:
+            CorrelatedEquilRewards = CorrelatedEquilRewards + corrrewardsloc
+            CorrelatedEquilActions[0] = CorrelatedEquilActions[0] + 1-corstrat       
+            CorrelatedEquilActions[1] = CorrelatedEquilActions[1] + corstrat            
+#        else: #did not find a correlated equilibrium, (ie dominant strategy exists)
+ #           CorrelatedEquilRewards = CorrelatedEquilRewards + corrrewardsloc
+  #          CorrelatedEquilActions = CorrelatedEquilActions + [corstrat[0][1], corstrat[1][1]]
  #           print(CorrelatedEquilRewards)
     for i in range(0, len(Agents)):
         AgentRewards[i] = AgentRewards[i]/float(NumExperiments)
         AgentActions[i] = AgentActions[i]/float(NumExperiments)
-        CorrelatedEquilActions[i] = CorrelatedEquilActions[i]/float(NumExperiments)
-        CorrelatedEquilRewards[i] = CorrelatedEquilRewards[i]/float(NumExperiments)
-        MixedStrategyActions[i] = MixedStrategyActions[i]/float(NumExperiments)
-        MixedStrategyRewards[i] = MixedStrategyRewards[i]/float(NumExperiments)
-    print(MixedStrategyActions, CorrelatedEquilActions)
-    print(MixedStrategyRewards, CorrelatedEquilRewards)
+#        CorrelatedEquilActions[i] = CorrelatedEquilActions[i]/float(NumExperiments)  COMMENTED OUT SINCE ONLY CALCULATING THOSE THINGS ONCE
+#        CorrelatedEquilRewards[i] = CorrelatedEquilRewards[i]/float(NumExperiments)
+#        MixedStrategyActions[i] = MixedStrategyActions[i]/float(NumExperiments)
+#        MixedStrategyRewards[i] = MixedStrategyRewards[i]/float(NumExperiments)
+    print(AllMixedStrategyActions, CorrelatedEquilActions)
+    print(AllMixedStrategyRewards, CorrelatedEquilRewards)
 
     #visualize stuff.
     for i in range(0, len(Agents)):
@@ -195,11 +204,17 @@ for configuration in csv_file:
         #matplotlib.pyplot.plot(range(5, int(variables['T_cutoff'])), slope*range(5, int(variables['T_cutoff'])) + intercept)
         matplotlib.pyplot.xlabel('t')
         matplotlib.pyplot.ylabel('R_{avg}')
-        matplotlib.pyplot.ylim([-.1, 2])
+        maxreward = AllMixedStrategyRewards[0][i]
         matplotlib.pyplot.title('Agent' + str(i))
         if PLOTNEQ:      
-            matplotlib.pyplot.axhline(y=MixedStrategyRewards[i], color = 'r', marker = 'x', label = 'Mixed Strategy Reward') 
-            matplotlib.pyplot.axhline(y=CorrelatedEquilRewards[i], color = 'g', label = 'Correlated Equil. Reward') 
+            matplotlib.pyplot.axhline(y=AllMixedStrategyRewards[0][i], color = 'r', marker = 'x', label = 'Mixed Strategy Rewards') 
+            for ii in range(1, len(AllMixedStrategyRewards)):
+                matplotlib.pyplot.axhline(y=AllMixedStrategyRewards[ii][i], color = 'r', marker = 'x') 
+                maxreward = max(maxreward, AllMixedStrategyRewards[ii][i])
+            if foundcorre:
+                matplotlib.pyplot.axhline(y=CorrelatedEquilRewards[i], color = 'g', label = 'Correlated Equil. Reward') 
+                maxreward = max(CorrelatedEquilRewards[i], maxreward)
+        matplotlib.pyplot.ylim([-.1, maxreward + .3 ])
         matplotlib.pyplot.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         matplotlib.pyplot.show()
         matplotlib.pyplot.figure()
@@ -211,8 +226,11 @@ for configuration in csv_file:
         matplotlib.pyplot.ylim([-.1, 1.1])
         
         if PLOTNEQ:      
-            matplotlib.pyplot.axhline(y=MixedStrategyActions[i], color = 'r', marker = 'x', label = 'Mixed Strategy') 
-            matplotlib.pyplot.axhline(y=CorrelatedEquilActions[i], color = 'g', label = 'Correlated Equilibrium Action') 
+            matplotlib.pyplot.axhline(y=AllMixedStrategyActions[0][i], color = 'r', marker = 'x', label = 'Mixed Strategy') 
+            for ii in range(1, len(AllMixedStrategyActions)):
+                matplotlib.pyplot.axhline(y=AllMixedStrategyActions[ii][i], color = 'r', marker = 'x') 
+            if foundcorre:
+                matplotlib.pyplot.axhline(y=CorrelatedEquilActions[i], color = 'g', label = 'Correlated Equilibrium Action') 
         matplotlib.pyplot.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         matplotlib.pyplot.show()
         matplotlib.pyplot.figure()

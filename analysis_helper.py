@@ -85,7 +85,12 @@ def findPossibleTrueStrategies():
     pure3 = [[1, 0], [0, 1]]
     pure4 = [[0, 1], [0, 1]]
     return [pure1, pure2, pure3, pure4]
-    
+
+def findPossibleStrategies(C, Kcoex):
+    strategies = findPossibleTrueStrategies()
+    strategies.append( findTrueMixedStrategy(C, Kcoex))
+    return strategies
+      
 def findBestMixedStrategy(C, Kcoex):
     strategies = findPossibleTrueStrategies()
     strategies.append( findTrueMixedStrategy(C, Kcoex))
@@ -122,12 +127,12 @@ def calc_correlated_equil(A, K):
     minp = max(1/2*C[0,1]/(C[0,0] + 1/2*C[0,1]), 1/2*C[1,1]/(C[1,0] + 1/2*C[1,1]))
     maxp = min(C[0,1]/(1/2*C[0,0] + C[0,1]), C[1,1]/(1/2*C[1,0] + C[1,1]))
     if maxp + epsilon < minp - epsilon: #correlated equilibrium not working. Defaulting to their dominant strategies
+        return False, None, None#, strat, [calcUtilityFromStrategy(0, strat, K, A), calcUtilityFromStrategy(1, strat, K, A)]
         strats = findPossibleTrueStrategies()
         utils = np.zeros(4)
         for i in range(0, 4):
             utils[i] = calculateLogSumUtilitiesFromMixedStrategies(strats[i], K, A)
         strat = strats[np.argmax(utils)]
-        return False, strat, [calcUtilityFromStrategy(0, strat, K, A), calcUtilityFromStrategy(1, strat, K, A)]
     c1 = C[0,0]
     c2 = C[0,1]
     c3 = C[1,0]
@@ -160,7 +165,7 @@ def calc_correlated_equil(A, K):
 def test_calc_correlated():
     #A = np.matrix([[np.random.rand(), np.random.rand()], [np.random.rand(), np.random.rand()]])
     A = np.matrix([[1,1], [1, 1]])
-    Kcoex = .666666666667
+    Kcoex = .99
     K = Kcoex
     C = np.zeros((2, 2))
     C[0,0] = K*A[0,0]
