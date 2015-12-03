@@ -77,26 +77,42 @@ def findTrueMixedStrategy(C, Kcoex):
     d = (1-Kcoex)/2*C[0,1]
     mixed1 = [(d-c)/(a-b), 1-(d-c)/(a-b)]
     
-    return [mixed0, mixed1];
+    if min(mixed0) >=0 and max(mixed0)<=1 and min(mixed1) >=0 and max(mixed1)<=1:
+        return [mixed0, mixed1];
+    return None
 
-def findPossibleTrueStrategies():
+def findPossiblePureStrategies(A, Kcoex):
     pure1 = [[1, 0], [1, 0]]
     pure2 = [[0, 1], [1, 0]]
     pure3 = [[1, 0], [0, 1]]
     pure4 = [[0, 1], [0, 1]]
-    return [pure1, pure2, pure3, pure4]
+    pures = [pure1, pure2, pure3, pure4]
 
-def findPossibleStrategies(C, Kcoex):
-    strategies = findPossibleTrueStrategies()
-    strategies.append( findTrueMixedStrategy(C, Kcoex))
+    actualequilibria = []
+    #loop through pure strats. if each is a best response to the other (within a margin), then it's an actual equilibria
+    epsilon = .001
+    for strat in pures:
+        oppostrat0 = [[strat[0][1], strat[0][0]], strat[1]]
+        oppostrat1 = [strat[0], [strat[1][1], strat[1][0]]]
+        
+        if (calcUtilityFromStrategy(0, strat, Kcoex, A) +epsilon > calcUtilityFromStrategy(0, oppostrat0, Kcoex, A)) and (calcUtilityFromStrategy(1, strat, Kcoex, A) +epsilon > calcUtilityFromStrategy(1, oppostrat1, Kcoex, A)):
+            actualequilibria.append(strat)
+    return actualequilibria
+        
+    
+def findPossibleStrategies(A, Kcoex):
+    strategies = findPossiblePureStrategies(A, Kcoex)
+    mixedstrat = findTrueMixedStrategy(A, Kcoex)
+    if mixedstrat is not None:
+        strategies.append( mixedstrat)
     return strategies
       
-def findBestMixedStrategy(C, Kcoex):
-    strategies = findPossibleTrueStrategies()
-    strategies.append( findTrueMixedStrategy(C, Kcoex))
+def findBestMixedStrategy(A, Kcoex):
+    strategies = findPossiblePureStrategies(A, Kcoex)
+    strategies.append( findTrueMixedStrategy(A, Kcoex))
     utils = np.zeros(5)
     for i in range(0, 5):
-        utils[i] = calculateLogSumUtilitiesFromMixedStrategies(strategies[i], Kcoex, C)
+        utils[i] = calculateLogSumUtilitiesFromMixedStrategies(strategies[i], Kcoex, A)
 #    print(strategies, utils)
     return strategies[np.argmax(utils)]        
     
@@ -124,8 +140,8 @@ def calc_correlated_equil(A, K):
     C[1,0] = (1-K)*A[1,1]
     C[1,1] = K*A[1,0]
     epsilon = .01 #fix rounding errors...
-    minp = max(1/2*C[0,1]/(C[0,0] + 1/2*C[0,1]), 1/2*C[1,1]/(C[1,0] + 1/2*C[1,1]))
-    maxp = min(C[0,1]/(1/2*C[0,0] + C[0,1]), C[1,1]/(1/2*C[1,0] + C[1,1]))
+    minp = max(1/2*C[0,1]/(C[0,0] + 1/2*C[0,1]), 1/2*C[1,0]/(C[1,1] + 1/2*C[1,0]))
+    maxp = min(C[0,1]/(1/2*C[0,0] + C[0,1]), C[1,0]/(1/2*C[1,1] + C[1,0]))
     if maxp + epsilon < minp - epsilon: #correlated equilibrium not working. Defaulting to their dominant strategies
         return False, None, None#, strat, [calcUtilityFromStrategy(0, strat, K, A), calcUtilityFromStrategy(1, strat, K, A)]
         strats = findPossibleTrueStrategies()

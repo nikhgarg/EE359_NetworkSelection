@@ -194,6 +194,8 @@ for configuration in csv_file:
 #        CorrelatedEquilRewards[i] = CorrelatedEquilRewards[i]/float(NumExperiments)
 #        MixedStrategyActions[i] = MixedStrategyActions[i]/float(NumExperiments)
 #        MixedStrategyRewards[i] = MixedStrategyRewards[i]/float(NumExperiments)
+    print(variables)
+    print (C)
     print(AllMixedStrategyActions, CorrelatedEquilActions)
     print(AllMixedStrategyRewards, CorrelatedEquilRewards)
 
