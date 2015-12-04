@@ -35,7 +35,7 @@ import time
 from scipy import stats
 import analysis_helper
 import math
-input_file = 'experiments_k3.csv'
+input_file = 'experiments_k.csv'
 csv_file = csv.DictReader(open(input_file, 'r'), delimiter=',', quotechar='"')
 configs = []
 
@@ -43,7 +43,7 @@ for configuration in csv_file:
     configs.append(configuration)
 
 
-output_file = 'data_k3.csv'
+output_file = 'data_k2.csv'
 
 PLOTNEQ = 1
 

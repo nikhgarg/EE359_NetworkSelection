@@ -41,7 +41,7 @@ csv_file = csv.DictReader(open(input_file, 'r'), delimiter=',', quotechar='"')
 output_file = 'data.csv'
 
 PLOTNEQ = 0
-PLOTLOGSUMOVERTIME = 1
+PLOTLOGSUMOVERTIME = 0
 
 def getNetworkGeometry(CASE):
     BSs = []
@@ -130,8 +130,12 @@ for configuration in csv_file:
 
     AgentRewards = []
     AgentActions = []
+    AgentTypesRewards = [[]]*(len(randomchoices))
+    AgentTypesActions = [[]]*(len(randomchoices))
+    TypeCounts = np.zeros(len(randomchoices))
+    
     for experiment_num in range(0, NumExperiments):
-        if experiment_num % 10 == 1:
+        if experiment_num % 100 == 1:
                 print(experiment_num) 
         [Agents, BSs] = createAgents(variables)
         t = 0
@@ -149,55 +153,25 @@ for configuration in csv_file:
             if t >= variables['T_cutoff']:
                 break
         for i in range(0, len(Agents)):
+            ag = Agents[i]
+            typeind = randomchoices.index(ag.name)
+            TypeCounts[typeind] = TypeCounts[typeind]  + 1
             if experiment_num is 0:
                 AgentRewards.append(np.array(Agents[i].rewards))
                 AgentActions.append(np.array(Agents[i].actions))
             else:
                 AgentRewards[i] = AgentRewards[i] + np.array(Agents[i].rewards)
                 AgentActions[i] = AgentActions[i] + np.array(Agents[i].actions)
-    foundcorre     = False
-    if PLOTNEQ:          
-        AllMixedStrategyRewards = []
-        AllMixedStrategyActions = []
+            if len(AgentTypesRewards[typeind]) == 0:
+                AgentTypesRewards[typeind] = ag.rewards
+                AgentTypesActions[typeind] = ag.actions
+            else:
+                AgentTypesRewards[typeind] = np.add(AgentTypesRewards[typeind],ag.rewards)
+                AgentTypesActions[typeind] = np.add(AgentTypesActions[typeind] ,ag.actions)
 
-#        MixedStrategyRewards = np.zeros(variables['NumAgents'])
-        CorrelatedEquilRewards = np.zeros(variables['NumAgents'])
-#        MixedStrategyActions = np.zeros(variables['NumAgents'])
-        CorrelatedEquilActions = np.zeros(variables['NumAgents'])
-        C = np.zeros((2, 2))
-        for i in [0, 1]:
-            for j in [0, 1]:
-                C[i,j] = environment.calculatecapacity(Agents[i], BSs[j], 1, variables, doFading=False)
-            
-        for strat in analysis_helper.findPossibleStrategies(C, variables["K_coexistence"]):
-             AllMixedStrategyRewards.append([analysis_helper.calcUtilityFromStrategy(0, strat, variables["K_coexistence"], C), analysis_helper.calcUtilityFromStrategy(1, strat, variables["K_coexistence"], C)])
-             AllMixedStrategyActions.append([strat[0][1], strat[1][1]])
-            
- #       bestmixed = analysis_helper.findBestMixedStrategy(C, variables["K_coexistence"])
- #       MixedStrategyRewards = MixedStrategyRewards + [analysis_helper.calcUtilityFromStrategy(0, bestmixed, variables["K_coexistence"], C), analysis_helper.calcUtilityFromStrategy(1, bestmixed, variables["K_coexistence"], C)]
- #       MixedStrategyActions = MixedStrategyActions + [bestmixed[0][1], bestmixed[1][1]]
-        
-        foundcorre, corstrat, corrrewardsloc = analysis_helper.calc_correlated_equil(C, variables["K_coexistence"])
- #       print(foundcorre, corstrat, corrrewardsloc)
-        if foundcorre:
-            CorrelatedEquilRewards = CorrelatedEquilRewards + corrrewardsloc
-            CorrelatedEquilActions[0] = CorrelatedEquilActions[0] + 1-corstrat       
-            CorrelatedEquilActions[1] = CorrelatedEquilActions[1] + corstrat            
-#        else: #did not find a correlated equilibrium, (ie dominant strategy exists)
- #           CorrelatedEquilRewards = CorrelatedEquilRewards + corrrewardsloc
-  #          CorrelatedEquilActions = CorrelatedEquilActions + [corstrat[0][1], corstrat[1][1]]
- #           print(CorrelatedEquilRewards)
     for i in range(0, len(Agents)):
         AgentRewards[i] = AgentRewards[i]/float(NumExperiments)
         AgentActions[i] = AgentActions[i]/float(NumExperiments)
-#        CorrelatedEquilActions[i] = CorrelatedEquilActions[i]/float(NumExperiments)  COMMENTED OUT SINCE ONLY CALCULATING THOSE THINGS ONCE
-#        CorrelatedEquilRewards[i] = CorrelatedEquilRewards[i]/float(NumExperiments)
-#        MixedStrategyActions[i] = MixedStrategyActions[i]/float(NumExperiments)
-#        MixedStrategyRewards[i] = MixedStrategyRewards[i]/float(NumExperiments)
-    print(variables)
-    print (C)
-    print(AllMixedStrategyActions, CorrelatedEquilActions)
-    print(AllMixedStrategyRewards, CorrelatedEquilRewards)
 
     #visualize stuff.
     if PLOTLOGSUMOVERTIME:
@@ -207,73 +181,35 @@ for configuration in csv_file:
         matplotlib.pyplot.xlabel('t')
         matplotlib.pyplot.ylabel('Logsum Rate')
         matplotlib.pyplot.title('Logsum Rate over Time')
-        if PLOTNEQ:         
-            maxreward = AllMixedStrategyRewards[0][i]
-            AllMixedStrategyRewards_Logsum = []
-            for ii in range(0, len(AllMixedStrategyRewards)):
-                AllMixedStrategyRewards_Logsum.append(math.log(epsilon +np.mean(AllMixedStrategyRewards[ii][0]), 2) + math.log(epsilon + np.mean(AllMixedStrategyRewards[ii][1]), 2))
-            matplotlib.pyplot.axhline(y=AllMixedStrategyRewards_Logsum[0], color = 'r', marker = 'x', label = 'Mixed Strategy Rewards') 
-            for ii in range(1, len(AllMixedStrategyRewards_Logsum)):
-                matplotlib.pyplot.axhline(y=AllMixedStrategyRewards_Logsum[ii], color = 'r', marker = 'x') 
-                maxreward = max(maxreward, AllMixedStrategyRewards_Logsum[ii])
-            if foundcorre:
-                CorrelatedEquilRewards_logsum = math.log(epsilon +np.mean(CorrelatedEquilRewards[0]), 2) + math.log(epsilon + np.mean(CorrelatedEquilRewards[1]), 2)
-                matplotlib.pyplot.axhline(y=CorrelatedEquilRewards_logsum, color = 'g', label = 'Correlated Equil. Reward') 
-                maxreward = max(CorrelatedEquilRewards_logsum, maxreward)
         matplotlib.pyplot.ylim([-5, -.5 ])
         matplotlib.pyplot.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         matplotlib.pyplot.show()
-        matplotlib.pyplot.figure()
-
-    # Two subplots, unpack the axes array immediately
-    rewardaxs = [None, None];
-    freward, (rewardaxs[0], rewardaxs[1]) = matplotlib.pyplot.subplots(1, 2, sharey=True)
-    matplotlib.pyplot.suptitle('Rate over Time')
-
-
-    for i in range(0, len(Agents)):
-        rewardaxs[i].plot(range(0, int(variables['T_cutoff'])), AgentRewards[i], 'b', label='Actual Reward')
-        rewardaxs[i].set_xlabel('t')
-        rewardaxs[i].set_ylabel('R_{avg}')
-        if PLOTNEQ:      
-            maxreward = AllMixedStrategyRewards[0][i]
-            rewardaxs[i].set_title('Agent' + str(i) + '\n' + Agents[0].name)
-            rewardaxs[i].axhline(y=AllMixedStrategyRewards[0][i], color = 'r', marker = 'x', linestyle = '--', label = 'Mixed Strategy Rewards') 
-            for ii in range(1, len(AllMixedStrategyRewards)):
-                rewardaxs[i].axhline(y=AllMixedStrategyRewards[ii][i], color = 'r', linestyle = '--', marker = 'x') 
-                maxreward = max(maxreward, AllMixedStrategyRewards[ii][i])
-            if foundcorre:
-                rewardaxs[i].axhline(y=CorrelatedEquilRewards[i], color = 'g', linestyle = '--', label = 'Correlated Equil. Reward') 
-                maxreward = max(CorrelatedEquilRewards[i], maxreward)
-        rewardaxs[i].set_ylim([-.1, maxreward + .3 ])
-        if i is 1:
-            rewardaxs[i].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-        #matplotlib.pyplot.show()
-    matplotlib.pyplot.show()
-#    matplotlib.pyplot.figure()
-#    
-    actionaxs = [None, None]
-    faction, (actionaxs[0], actionaxs[1]) = matplotlib.pyplot.subplots(1, 2, sharey=True)
-    matplotlib.pyplot.suptitle('Actions over Time')
-    for i in range(0, len(Agents)):
-        actionaxs[i].plot(range(0, int(variables['T_cutoff'])), AgentActions[i], 'b', label = 'Actual Action')
-        actionaxs[i].set_xlabel('t')
-        actionaxs[i].set_ylabel('Avg Action')
-        actionaxs[i].set_title('Agent' + str(i) + '\n' + Agents[0].name)
-        actionaxs[i].set_ylim([-.1, 1.1])
+#        matplotlib.pyplot.figure()
         
-        if PLOTNEQ:      
-            actionaxs[i].axhline(y=AllMixedStrategyActions[0][i], color = 'r', linestyle='--', marker = 'x', label = 'Mixed Strategy') 
-            for ii in range(1, len(AllMixedStrategyActions)):
-                actionaxs[i].axhline(y=AllMixedStrategyActions[ii][i], color = 'r', linestyle='--', marker = 'x') 
-            if foundcorre:
-                actionaxs[i].axhline(y=CorrelatedEquilActions[i], color = 'g', linestyle='--', label = 'Correlated Equilibrium Action') 
-        if i is 1:     
-            actionaxs[i].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-        #matplotlib.pyplot.show()
-        #matplotlib.pyplot.figure()
-    matplotlib.pyplot.show()
+        
+#aggregate by figure type -- plot rewards for each type of user
+    print(TypeCounts)
+    for typeind in range(0, len(randomchoices)):
+        AgentTypesRewards[typeind] = AgentTypesRewards[typeind]/TypeCounts[typeind]
+        AgentTypesActions[typeind] = AgentTypesActions[typeind]/TypeCounts[typeind]         
 
+    for i in range(0, len(AgentTypesActions)):
+        matplotlib.pyplot.plot(range(0, int(variables['T_cutoff'])), AgentTypesRewards[i], label=randomchoices[i])
+    matplotlib.pyplot.xlabel('t')
+    matplotlib.pyplot.ylabel('R_{avg}')
+    matplotlib.pyplot.title('Rates over Time')
+    matplotlib.pyplot.ylim([0, max([max(AgentTypesRewards[i]) for i in range(0, len(AgentTypesRewards))]) + .1])
+    matplotlib.pyplot.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    matplotlib.pyplot.show()
+            
+    for i in range(0, len(AgentTypesActions)):
+        matplotlib.pyplot.plot(range(0, int(variables['T_cutoff'])), AgentTypesActions[i], label = randomchoices[i])
+    matplotlib.pyplot.xlabel('t')
+    matplotlib.pyplot.ylabel('Avg Action')
+    matplotlib.pyplot.title('Actions over Time')
+    matplotlib.pyplot.ylim([-.1, 1.1])
+    matplotlib.pyplot.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    matplotlib.pyplot.show()
     #output results:
     
     fieldnamesorder = ['ExperimentName', 'ExperimentTime', 'NumAgents', 'COEXISTENCEPROTOCOL', 'Agent_type', 'Agent_location']
@@ -307,13 +243,5 @@ for configuration in csv_file:
         outputwriter.writerow(AgentPrintingDicts[i])
     outputfilehandle.close()
 
-#for deterministic agents:
-    #For each agent, aggregate/average their preferences over the experiments and report them
-#for non-deterministic agents (later):
-    #aggregate by type of agent or something, or combine all of them, or just do the middle?
     
 print("done")
-#def bar():  return 1
-#mydct = {'foo': bar}
-#mydct['foo']()
-        

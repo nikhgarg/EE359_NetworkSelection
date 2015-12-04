@@ -94,7 +94,7 @@ class Agent_BasicProportionalLearning(Agent):
 #current class only works with 2 agents. Would explode exponentially with more.        
 class Agent_FictitiousPlay(Agent):
     def __init__(self, loc, actspace, index, name = ''):
-        super().__init__(loc, actspace, index)
+        super().__init__(loc, actspace, index, name)
         self.distribution = np.zeros((len(actspace), len(actspace))) #joint distribution (with probabilities)
         self.distribution_rewards = np.zeros((len(actspace), len(actspace))) #joint distribution (with rewards)
 
@@ -131,7 +131,7 @@ class Agent_FictitiousPlay(Agent):
         
 class Agent_FictitiousProportionalPlay(Agent):
     def __init__(self, loc, actspace, index, name = ''):
-        super().__init__(loc, actspace, index)
+        super().__init__(loc, actspace, index, name)
         self.distribution = np.zeros((len(actspace), len(actspace))) #joint distribution (with probabilities)
         self.distribution_rewards = np.zeros((len(actspace), len(actspace))) #joint distribution (with rewards)
 
@@ -176,7 +176,7 @@ class Agent_FictitiousProportionalPlay(Agent):
         
 class Agent_NaiveBayes(Agent): #TODO. Currently only works with 1 other user. 
     def __init__(self, loc, actspace, index, name = ''):
-        super().__init__(loc, actspace, index)
+        super().__init__(loc, actspace, index, name)
         self.distribution = np.zeros((len(actspace), len(actspace))) #joint distribution (with probabilities)
         self.distribution_rewards = np.zeros((len(actspace), len(actspace))) #joint distribution (with rewards)
         self.model= BernoulliNB();
@@ -235,7 +235,7 @@ class Agent_StubbornThenLearning(Agent):
             caps = [environment.calculatecapacity(self, BSs[0], 1, variables, doFading=False), environment.calculatecapacity(self, BSs[1], 1, variables, doFading=False)]
             #multiply by K, 1-K 
             caps[0] = caps[0] * variables['K_coexistence']
-            caps[1] = caps[1] * 1-(variables['K_coexistence'])
+            caps[1] = caps[1] * (1-(variables['K_coexistence']))
             #choose maximising
             action = np.argmax(caps)
             
@@ -249,7 +249,7 @@ class Agent_Stubborn(Agent):
         caps = [environment.calculatecapacity(self, BSs[0], 1, variables, doFading=False), environment.calculatecapacity(self, BSs[1], 1, variables, doFading=False)]
         #multiply by K, 1-K 
         caps[0] = caps[0] * variables['K_coexistence']
-        caps[1] = caps[1] * 1-(variables['K_coexistence'])
+        caps[1] = caps[1] * (1-(variables['K_coexistence']))
         #choose maximising
         action = np.argmax(caps)
             

@@ -35,12 +35,12 @@ import time
 from scipy import stats
 import analysis_helper
 import math
-input_file = 'experiments_N.csv'
+input_file = 'experiments.csv'
 csv_file = csv.DictReader(open(input_file, 'r'), delimiter=',', quotechar='"')
 
 output_file = 'data.csv'
 
-PLOTNEQ = 0
+PLOTNEQ = 1
 PLOTLOGSUMOVERTIME = 1
 
 def getNetworkGeometry(CASE):
@@ -131,7 +131,7 @@ for configuration in csv_file:
     AgentRewards = []
     AgentActions = []
     for experiment_num in range(0, NumExperiments):
-        if experiment_num % 10 == 1:
+        if experiment_num % 1000 == 1:
                 print(experiment_num) 
         [Agents, BSs] = createAgents(variables)
         t = 0
@@ -194,10 +194,6 @@ for configuration in csv_file:
 #        CorrelatedEquilRewards[i] = CorrelatedEquilRewards[i]/float(NumExperiments)
 #        MixedStrategyActions[i] = MixedStrategyActions[i]/float(NumExperiments)
 #        MixedStrategyRewards[i] = MixedStrategyRewards[i]/float(NumExperiments)
-    print(variables)
-    print (C)
-    print(AllMixedStrategyActions, CorrelatedEquilActions)
-    print(AllMixedStrategyRewards, CorrelatedEquilRewards)
 
     #visualize stuff.
     if PLOTLOGSUMOVERTIME:
@@ -232,12 +228,12 @@ for configuration in csv_file:
 
 
     for i in range(0, len(Agents)):
-        rewardaxs[i].plot(range(0, int(variables['T_cutoff'])), AgentRewards[i], 'b', label='Actual Reward')
+        rewardaxs[i].plot(range(0, int(variables['T_cutoff'])), AgentRewards[i], 'b')
         rewardaxs[i].set_xlabel('t')
         rewardaxs[i].set_ylabel('R_{avg}')
+        rewardaxs[i].set_title('Agent' + str(i) + '\n' + Agents[i].name)
         if PLOTNEQ:      
             maxreward = AllMixedStrategyRewards[0][i]
-            rewardaxs[i].set_title('Agent' + str(i) + '\n' + Agents[0].name)
             rewardaxs[i].axhline(y=AllMixedStrategyRewards[0][i], color = 'r', marker = 'x', linestyle = '--', label = 'Mixed Strategy Rewards') 
             for ii in range(1, len(AllMixedStrategyRewards)):
                 rewardaxs[i].axhline(y=AllMixedStrategyRewards[ii][i], color = 'r', linestyle = '--', marker = 'x') 
@@ -245,7 +241,7 @@ for configuration in csv_file:
             if foundcorre:
                 rewardaxs[i].axhline(y=CorrelatedEquilRewards[i], color = 'g', linestyle = '--', label = 'Correlated Equil. Reward') 
                 maxreward = max(CorrelatedEquilRewards[i], maxreward)
-        rewardaxs[i].set_ylim([-.1, maxreward + .3 ])
+        rewardaxs[i].set_ylim([-.1, 1 ])
         if i is 1:
             rewardaxs[i].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         #matplotlib.pyplot.show()
@@ -256,10 +252,10 @@ for configuration in csv_file:
     faction, (actionaxs[0], actionaxs[1]) = matplotlib.pyplot.subplots(1, 2, sharey=True)
     matplotlib.pyplot.suptitle('Actions over Time')
     for i in range(0, len(Agents)):
-        actionaxs[i].plot(range(0, int(variables['T_cutoff'])), AgentActions[i], 'b', label = 'Actual Action')
+        actionaxs[i].plot(range(0, int(variables['T_cutoff'])), AgentActions[i], 'b')
         actionaxs[i].set_xlabel('t')
         actionaxs[i].set_ylabel('Avg Action')
-        actionaxs[i].set_title('Agent' + str(i) + '\n' + Agents[0].name)
+        actionaxs[i].set_title('Agent' + str(i) + '\n' + Agents[i].name)
         actionaxs[i].set_ylim([-.1, 1.1])
         
         if PLOTNEQ:      
